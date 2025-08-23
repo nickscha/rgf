@@ -232,7 +232,7 @@ RGF_PLATFORM_API RGF_PLATFORM_INLINE int rgf_platform_read(char *filename, unsig
         return 0;
     }
 
-    bytes_read = read(fd, file_buffer, st.st_size);
+    bytes_read = read(fd, file_buffer, (size_t) st.st_size);
     if (bytes_read != st.st_size)
     {
         close(fd);
@@ -240,7 +240,7 @@ RGF_PLATFORM_API RGF_PLATFORM_INLINE int rgf_platform_read(char *filename, unsig
     }
 
     file_buffer[st.st_size] = '\0'; /* Optional: null-terminate */
-    *file_buffer_size = st.st_size;
+    *file_buffer_size = (unsigned long) st.st_size;
 
     close(fd);
     return 1;
