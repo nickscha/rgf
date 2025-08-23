@@ -57,6 +57,27 @@ typedef struct rgf_model
 } rgf_model;
 
 /* ########################################################## */
+/* # OBJ to RGF conversion funciton                           */
+/* ########################################################## */
+RGF_API RGF_INLINE int rgf_convert_obj(
+    rgf_model *model,              /* The filled by supplied obj file data model      */
+    unsigned char *obj_binary,     /* OBJ File binary buffer                          */
+    unsigned long obj_binary_size, /* OBJ File binary buffer size                     */
+    float center_position[3],      /* Where should the model be cenetered             */
+    float scale_target             /* Model normalization 1.0f = 1x1x1 dimension, ... */
+)
+{
+
+  /* Check input arguments */
+  if (!model || !obj_binary || obj_binary_size <= 0 || !center_position || scale_target <= 0.0f)
+  {
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ########################################################## */
 /* # Binary En-/Decoding of rgf data                          */
 /* ########################################################## */
 #define RGF_BINARY_VERSION 1
@@ -76,7 +97,7 @@ RGF_API RGF_INLINE void *rgf_binary_memcpy(void *dest, void *src, unsigned long 
   return dest;
 }
 
-RGF_API RGF_INLINE void rgf_binary_encode(
+RGF_API RGF_INLINE int rgf_binary_encode(
     unsigned char *out_binary,         /* Output buffer for executable        */
     unsigned long out_binary_capacity, /* Capacity of output buffer           */
     unsigned long *out_binary_size,    /* Actual size of output binary buffer */
@@ -97,7 +118,7 @@ RGF_API RGF_INLINE void rgf_binary_encode(
   if (out_binary_capacity < size_total)
   {
     /* Binary buffer size cannot fit the rgf data */
-    return;
+    return 0;
   }
 
   /* 4 byte magic */
@@ -146,6 +167,8 @@ RGF_API RGF_INLINE void rgf_binary_encode(
   ptr += size_indices;
 
   *out_binary_size = size_total;
+
+  return 1;
 }
 
 RGF_API RGF_INLINE unsigned long rgf_binary_read_ul(unsigned char *ptr)
@@ -169,7 +192,7 @@ RGF_API RGF_INLINE float rgf_binary_read_float(unsigned char *ptr)
   return u.f;
 }
 
-RGF_API RGF_INLINE void rgf_binary_decode(
+RGF_API RGF_INLINE int rgf_binary_decode(
     unsigned char *in_binary,     /* Output buffer for executable        */
     unsigned long in_binary_size, /* Actual size of output binary buffer */
     rgf_model *model              /* The rgf data model                  */
@@ -182,24 +205,24 @@ RGF_API RGF_INLINE void rgf_binary_decode(
   if (in_binary_size < RGF_BINARY_SIZE_HEADER)
   {
     /* no valid rgf binary */
-    return;
+    return 0;
   }
 
   if (in_binary[0] != 'R' || in_binary[1] != 'G' || in_binary[2] != 'F' || in_binary[3] != '\0')
   {
     /* no right magic */
-    return;
+    return 0;
   }
   if (in_binary[4] != RGF_BINARY_VERSION)
   {
     /* no right version */
-    return;
+    return 0;
   }
 
   if (in_binary[5] != 0 || in_binary[6] != 0 || in_binary[7] != 0)
   {
     /* no right padding */
-    return;
+    return 0;
   }
 
   binary_ptr = in_binary + RGF_BINARY_SIZE_HEADER;
@@ -219,7 +242,7 @@ RGF_API RGF_INLINE void rgf_binary_decode(
   if (in_binary_size < size_total)
   {
     /* no space for data */
-    return;
+    return 0;
   }
 
   model->min_x = rgf_binary_read_float(binary_ptr);
@@ -248,6 +271,8 @@ RGF_API RGF_INLINE void rgf_binary_decode(
 
   model->indices = (int *)binary_ptr;
   binary_ptr += model->indices_size * sizeof(int);
+
+  return 1;
 }
 
 #endif /* RGF_H */

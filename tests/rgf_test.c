@@ -39,15 +39,22 @@ void rgf_test_encode_decode(void)
   /* ########################################################## */
   /* # Endcode to binary                                        */
   /* ########################################################## */
-  rgf_binary_encode(binary_buffer, BINARY_BUFFER_CAPACITY, &binary_buffer_size, &model);
+  assert(rgf_binary_encode(binary_buffer, BINARY_BUFFER_CAPACITY, &binary_buffer_size, &model));
+
+  /* Check header */
+  assert(binary_buffer[0] == 'R');
+  assert(binary_buffer[1] == 'G');
+  assert(binary_buffer[2] == 'F');
+  assert(binary_buffer[3] == '\0');
+  assert(binary_buffer[4] == RGF_BINARY_VERSION);
+  assert(binary_buffer[5] == 0);
+  assert(binary_buffer[6] == 0);
+  assert(binary_buffer[7] == 0);
 
   /* ########################################################## */
   /* # Decode from binary                                       */
   /* ########################################################## */
-  rgf_binary_decode(
-      binary_buffer,
-      binary_buffer_size,
-      &binary_model);
+  assert(rgf_binary_decode(binary_buffer, binary_buffer_size, &binary_model));
 
   assert(binary_model.vertices_size == model.vertices_size);
   assert(binary_model.indices_size == model.indices_size);
@@ -72,7 +79,7 @@ void rgf_test_encode_to_file(void)
   /* ########################################################## */
   /* # Endcode to binary                                        */
   /* ########################################################## */
-  rgf_binary_encode(binary_buffer, BINARY_BUFFER_CAPACITY, &binary_buffer_size, &model);
+  assert(rgf_binary_encode(binary_buffer, BINARY_BUFFER_CAPACITY, &binary_buffer_size, &model));
 
   /* Check header */
   assert(binary_buffer[0] == 'R');
@@ -107,7 +114,7 @@ void rgf_test_decode_from_file(void)
   assert(binary_buffer[6] == 0);
   assert(binary_buffer[7] == 0);
 
-  rgf_binary_decode(binary_buffer, binary_buffer_size, &model);
+  assert(rgf_binary_decode(binary_buffer, binary_buffer_size, &model));
 
   assert(model.vertices_size == 2);
   assert(model.indices_size == 2);
