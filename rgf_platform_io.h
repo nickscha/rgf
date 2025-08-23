@@ -48,31 +48,6 @@ LICENSE
 #define RGF_PLATFORM_WIN32_FILE_SHARE_READ 0x00000001
 #define RGF_PLATFORM_WIN32_OPEN_EXISTING 3
 
-/* IO Find file */
-#define RGF_PLATFORM_WIN32_MAX_PATH 260
-
-typedef struct RGF_PLATFORM_WIN32_FILETIME
-{
-    unsigned long dwLowDateTime;
-    unsigned long dwHighDateTime;
-
-} RGF_PLATFORM_WIN32_FILETIME;
-
-typedef struct RGF_PLATFORM_WIN32_FIND_DATAA
-{
-    unsigned long dwFileAttributes;
-    RGF_PLATFORM_WIN32_FILETIME ftCreationTime;
-    RGF_PLATFORM_WIN32_FILETIME ftLastAccessTime;
-    RGF_PLATFORM_WIN32_FILETIME ftLastWriteTime;
-    unsigned long nFileSizeHigh;
-    unsigned long nFileSizeLow;
-    unsigned long dwReserved0;
-    unsigned long dwReserved1;
-    char cFileName[RGF_PLATFORM_WIN32_MAX_PATH];
-    char cAlternateFileName[14];
-
-} RGF_PLATFORM_WIN32_FIND_DATAA;
-
 #ifndef _WINDOWS_
 #define RGF_PLATFORM_WIN32_API(r) __declspec(dllimport) r __stdcall
 
@@ -110,16 +85,6 @@ ReadFile(
     unsigned long nNumberOfBytesToRead,
     unsigned long *lpNumberOfBytesRead,
     void *lpOverlapped);
-
-/* IO Find file */
-RGF_PLATFORM_WIN32_API(void *)
-FindFirstFileA(const char *lpFileName, RGF_PLATFORM_WIN32_FIND_DATAA *lpFindFileData);
-
-RGF_PLATFORM_WIN32_API(int)
-FindNextFileA(void *hFindFile, RGF_PLATFORM_WIN32_FIND_DATAA *lpFindFileData);
-
-RGF_PLATFORM_WIN32_API(int)
-FindClose(void *hFindFile);
 
 #endif /* _WINDOWS_ */
 
@@ -232,7 +197,7 @@ RGF_PLATFORM_API RGF_PLATFORM_INLINE int rgf_platform_read(char *filename, unsig
         return 0;
     }
 
-    bytes_read = read(fd, file_buffer, (size_t) st.st_size);
+    bytes_read = read(fd, file_buffer, (size_t)st.st_size);
     if (bytes_read != st.st_size)
     {
         close(fd);
@@ -240,7 +205,7 @@ RGF_PLATFORM_API RGF_PLATFORM_INLINE int rgf_platform_read(char *filename, unsig
     }
 
     file_buffer[st.st_size] = '\0'; /* Optional: null-terminate */
-    *file_buffer_size = (unsigned long) st.st_size;
+    *file_buffer_size = (unsigned long)st.st_size;
 
     close(fd);
     return 1;
