@@ -32,7 +32,6 @@ LICENSE
 
 #define RGF_STATIC_ASSERT(c, m) typedef char rgf_assert_##m[(c) ? 1 : -1]
 
-RGF_STATIC_ASSERT(sizeof(unsigned long) == 4, ul_size_must_be_4);
 RGF_STATIC_ASSERT(sizeof(float) == 4, f32_size_must_be_4);
 RGF_STATIC_ASSERT(sizeof(int) == 4, i32_size_must_be_4);
 
@@ -120,10 +119,10 @@ RGF_API RGF_INLINE void rgf_binary_encode(
 
   ptr += RGF_BINARY_SIZE_HEADER;
 
-  rgf_binary_memcpy(ptr, &model->vertices_size, 4);
-  ptr += 4;
-  rgf_binary_memcpy(ptr, &model->indices_size, 4);
-  ptr += 4;
+  rgf_binary_memcpy(ptr, &model->vertices_size, (unsigned long)sizeof(unsigned long));
+  ptr += sizeof(unsigned long);
+  rgf_binary_memcpy(ptr, &model->indices_size, (unsigned long)sizeof(unsigned long));
+  ptr += sizeof(unsigned long);
 
   rgf_binary_memcpy(ptr, &model->min_x, 4);
   ptr += 4;
@@ -211,9 +210,9 @@ RGF_API RGF_INLINE void rgf_binary_decode(
   binary_ptr = in_binary + RGF_BINARY_SIZE_HEADER;
 
   model->vertices_size = rgf_binary_read_ul(binary_ptr);
-  binary_ptr += 4;
+  binary_ptr += sizeof(unsigned long);
   model->indices_size = rgf_binary_read_ul(binary_ptr);
-  binary_ptr += 4;
+  binary_ptr += sizeof(unsigned long);
 
   size_total = (unsigned long)(RGF_BINARY_SIZE_HEADER +               /* Header                                  */
                                2 * sizeof(unsigned long) +            /* Vertices/Indices count                  */
