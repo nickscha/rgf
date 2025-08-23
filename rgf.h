@@ -30,11 +30,6 @@ LICENSE
 #define RGF_API static
 #endif
 
-#define RGF_STATIC_ASSERT(c, m) typedef char rgf_assert_##m[(c) ? 1 : -1]
-
-RGF_STATIC_ASSERT(sizeof(float) == 4, f32_size_must_be_4);
-RGF_STATIC_ASSERT(sizeof(int) == 4, i32_size_must_be_4);
-
 /* ########################################################## */
 /* # The standard RGF data model                              */
 /* ########################################################## */
