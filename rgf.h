@@ -38,6 +38,7 @@ typedef struct rgf_model
 
   unsigned long vertices_size;
   unsigned long normals_size;
+  unsigned long uvs_size; /* Number of floats in the uvs array */
   unsigned long indices_size;
 
   float min_x;
@@ -62,6 +63,7 @@ typedef struct rgf_model
 
   float *vertices;
   float *normals;
+  float *uvs; /* Texture coordinates: size = (vertices_size / 3) * 2 */
   int *indices;
 
 } rgf_model;
@@ -217,7 +219,9 @@ RGF_API RGF_INLINE int rgf_parse_obj(
   unsigned long i = 0;
   unsigned long vertex_count = 0;
   unsigned long triangle_count = 0;
+  unsigned long uv_count = 0;
   unsigned long v_index = 0;
+  unsigned long uv_index = 0;
   unsigned long f_index = 0;
   int face_indices_temp[RGF_OBJ_MAX_FACE_VERTICES];
   int face_vertices_count;
@@ -236,6 +240,10 @@ RGF_API RGF_INLINE int rgf_parse_obj(
     if (obj_binary[i] == 'v' && obj_binary[i + 1] == ' ')
     {
       vertex_count++;
+    }
+    else if (obj_binary[i] == 'v' && obj_binary[i + 1] == 't')
+    {
+      uv_count++;
     }
     else if (obj_binary[i] == 'f' && obj_binary[i + 1] == ' ')
     {
@@ -279,6 +287,7 @@ RGF_API RGF_INLINE int rgf_parse_obj(
   /* Allocate arrays */
   model->vertices_size = vertex_count * 3;
   model->indices_size = triangle_count * 3;
+  model->uvs_size = uv_count * 2;
 
   if (!model->vertices || !model->indices)
   {
@@ -292,6 +301,7 @@ RGF_API RGF_INLINE int rgf_parse_obj(
 
   while (i < obj_binary_size)
   {
+    /* -------- Vertex -------- */
     if (obj_binary[i] == 'v' && obj_binary[i + 1] == ' ')
     {
       int consumed = 0;
@@ -353,6 +363,21 @@ RGF_API RGF_INLINE int rgf_parse_obj(
       i += (unsigned long)consumed;
       v_index++;
     }
+    /* -------- Texture Coordinate -------- */
+    else if (obj_binary[i] == 'v' && obj_binary[i + 1] == 't')
+    {
+      int consumed = 0;
+      i += 3; /* skip "vt " */
+
+      model->uvs[uv_index++] = rgf_atof((char *)(obj_binary + i), &consumed);
+      i += (unsigned long)consumed;
+      while (rgf_is_space((char)obj_binary[i]))
+        i++;
+
+      model->uvs[uv_index++] = rgf_atof((char *)(obj_binary + i), &consumed);
+      i += (unsigned long)consumed;
+    }
+    /* -------- Faces -------- */
     else if (obj_binary[i] == 'f' && obj_binary[i + 1] == ' ')
     {
       int consumed = 0;

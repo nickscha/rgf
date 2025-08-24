@@ -130,12 +130,15 @@ void rgf_test_decode_from_file(void)
   assert(model.indices[1] == 1);
 }
 
+#include <stdlib.h>
+
 void rgf_test_parse_obj(void)
 {
   /* Stack Memory */
-  float vertices_buffer[30000];
-  int indices_buffer[60000];
-  float normals_buffer[30000];
+  float* vertices_buffer = malloc(30000 * sizeof(float));
+  int* indices_buffer = malloc(60000 * sizeof(float));
+  float* normals_buffer = malloc(30000 * sizeof(float));
+  float* uvs_buffer = malloc(100000 * sizeof(float));
   unsigned char binary_buffer[1500000];
   unsigned long binary_buffer_size = 0;
 
@@ -143,12 +146,14 @@ void rgf_test_parse_obj(void)
   model.vertices = vertices_buffer;
   model.indices = indices_buffer;
   model.normals = normals_buffer;
+  model.uvs = uvs_buffer;
 
   assert(rgf_platform_read("head.obj", binary_buffer, 1500000, &binary_buffer_size));
   assert(rgf_parse_obj(&model, binary_buffer, binary_buffer_size));
 
   assert(model.vertices_size > 0);
   assert(model.indices_size > 0);
+  assert(model.uvs_size > 0);
 
   assert(model.vertices_size == 26532UL);
   assert(model.indices_size == 53052UL);
@@ -230,6 +235,11 @@ void rgf_test_parse_obj(void)
 
   /* Calculate the normals */
   rgf_model_calculate_normals(&model);
+
+  free(vertices_buffer);
+  free(indices_buffer);
+  free(normals_buffer);
+  free(uvs_buffer);
 }
 
 int main(void)
