@@ -37,8 +37,8 @@ typedef struct rgf_model
 {
 
   unsigned long vertices_size;
-  unsigned long indices_size;
   unsigned long normals_size;
+  unsigned long indices_size;
 
   float min_x;
   float min_y;
@@ -61,8 +61,8 @@ typedef struct rgf_model
   float current_scale;    /* The current scaling factor relative to the original.  */
 
   float *vertices;
-  int *indices;
   float *normals;
+  int *indices;
 
 } rgf_model;
 
@@ -706,11 +706,13 @@ RGF_API RGF_INLINE int rgf_binary_encode(
   unsigned char *ptr = out_binary;
 
   unsigned long size_vertices = model->vertices_size * sizeof(float);
+  unsigned long size_normals = model->normals_size * sizeof(float);
   unsigned long size_indices = model->indices_size * sizeof(int);
   unsigned long size_total = (unsigned long)(RGF_BINARY_SIZE_HEADER +    /* Header                                  */
-                                             2 * sizeof(unsigned long) + /* Vertices/Indices count                  */
+                                             3 * sizeof(unsigned long) + /* Vertices/Normals/Indices count          */
                                              9 * sizeof(int) +           /* Boundaries of geometry (min,max,center) */
                                              size_vertices +             /* Vertices data                           */
+                                             size_normals +              /* Normals data                            */
                                              size_indices                /* Indices data                            */
   );
 
@@ -735,6 +737,8 @@ RGF_API RGF_INLINE int rgf_binary_encode(
   ptr += RGF_BINARY_SIZE_HEADER;
 
   rgf_binary_memcpy(ptr, &model->vertices_size, (unsigned long)sizeof(unsigned long));
+  ptr += sizeof(unsigned long);
+  rgf_binary_memcpy(ptr, &model->normals_size, (unsigned long)sizeof(unsigned long));
   ptr += sizeof(unsigned long);
   rgf_binary_memcpy(ptr, &model->indices_size, (unsigned long)sizeof(unsigned long));
   ptr += sizeof(unsigned long);
@@ -762,6 +766,8 @@ RGF_API RGF_INLINE int rgf_binary_encode(
 
   rgf_binary_memcpy(ptr, model->vertices, size_vertices);
   ptr += size_vertices;
+  rgf_binary_memcpy(ptr, model->normals, size_normals);
+  ptr += size_normals;
   rgf_binary_memcpy(ptr, model->indices, size_indices);
   ptr += size_indices;
 
@@ -828,13 +834,16 @@ RGF_API RGF_INLINE int rgf_binary_decode(
 
   model->vertices_size = rgf_binary_read_ul(binary_ptr);
   binary_ptr += sizeof(unsigned long);
+  model->normals_size = rgf_binary_read_ul(binary_ptr);
+  binary_ptr += sizeof(unsigned long);
   model->indices_size = rgf_binary_read_ul(binary_ptr);
   binary_ptr += sizeof(unsigned long);
 
   size_total = (unsigned long)(RGF_BINARY_SIZE_HEADER +               /* Header                                  */
-                               2 * sizeof(unsigned long) +            /* Vertices/Indices count                  */
+                               3 * sizeof(unsigned long) +            /* Vertices/Normals/Indices count           */
                                9 * sizeof(float) +                    /* Boundaries of geometry (min,max,center) */
                                model->vertices_size * sizeof(float) + /* Vertices data                           */
+                               model->normals_size * sizeof(float) +  /* Normals data                            */
                                model->indices_size * sizeof(int)      /* Indices data                            */
   );
 
@@ -867,6 +876,9 @@ RGF_API RGF_INLINE int rgf_binary_decode(
 
   model->vertices = (float *)binary_ptr;
   binary_ptr += model->vertices_size * sizeof(float);
+
+  model->normals = (float *)binary_ptr;
+  binary_ptr += model->normals_size * sizeof(float);
 
   model->indices = (int *)binary_ptr;
   binary_ptr += model->indices_size * sizeof(int);

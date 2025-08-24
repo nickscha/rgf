@@ -68,12 +68,15 @@ void rgf_test_encode_to_file(void)
 
   /* Setup of the rgf model data */
   float vertices[] = {1.0f, 0.0f};
+  float normals[] = {4.0f};
   int indices[] = {0, 1};
 
   rgf_model model = {0};
   model.vertices_size = 2;
+  model.normals_size = 1;
   model.indices_size = 2;
   model.vertices = vertices;
+  model.normals = normals;
   model.indices = indices;
 
   /* ########################################################## */
@@ -117,10 +120,12 @@ void rgf_test_decode_from_file(void)
   assert(rgf_binary_decode(binary_buffer, binary_buffer_size, &model));
 
   assert(model.vertices_size == 2);
+  assert(model.normals_size == 1);
   assert(model.indices_size == 2);
 
   assert_equalsf(model.vertices[0], 1.0f, RGF_TEST_EPSILON);
   assert_equalsf(model.vertices[1], 0.0f, RGF_TEST_EPSILON);
+  assert_equalsf(model.normals[0], 4.0f, RGF_TEST_EPSILON);
   assert(model.indices[0] == 0);
   assert(model.indices[1] == 1);
 }
