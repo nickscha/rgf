@@ -23,18 +23,40 @@ int main() {
     /* For simplicity we assign some stack memory for storing vertices and indices data */
     float vertices_buffer[30000];
     int indices_buffer[60000];
+    float normals_buffer[30000];
+
     unsigned char binary_buffer[1500000];
     unsigned long binary_buffer_size = 0;
 
     rgf_model model = {0};
     model.vertices = vertices_buffer;
     model.indices = indices_buffer;
+    model.normals = normals_buffer;
 
     /* Just for demonstration we use a small utility to read a file (nostdlib but platform specific) */
     rgf_platform_read("head.obj", binary_buffer, 1500000, &binary_buffer_size);
 
     /* Parses the obj file into the rgf data model */
     rgf_parse_obj(&model, binary_buffer, binary_buffer_size);
+
+    /* ########################################################## */
+    /* # Geometry manipulation functions                          */
+    /* ########################################################## */
+
+    /* Center the model to a specified x,y,z position */
+    rgf_model_center(&model, 0.0f, 0.0f, 0.0f);
+
+    /* Scale the model to a unit model (1 x 1 x 1) */
+    rgf_model_scale(&model, 1.0f);
+
+    /* Reset the scale back to the original */
+    rgf_model_scale_reset(&model);
+
+    /* Reset the model back to its original position */
+    rgf_model_center(&model);
+
+    /* Calculate the normals */
+    rgf_model_calculate_normals(&model);
 
     return 0;
 }

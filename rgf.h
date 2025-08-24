@@ -445,6 +445,9 @@ RGF_API RGF_INLINE int rgf_parse_obj(
   return 1;
 }
 
+/* ########################################################## */
+/* # Geometry manipulation functions                          */
+/* ########################################################## */
 RGF_API RGF_INLINE void rgf_model_calculate_normals(rgf_model *model)
 {
   unsigned long i;
@@ -500,9 +503,6 @@ RGF_API RGF_INLINE void rgf_model_calculate_normals(rgf_model *model)
   }
 }
 
-/* ########################################################## */
-/* # Geometry manipulation functions                          */
-/* ########################################################## */
 RGF_API RGF_INLINE void rgf_model_center(
     rgf_model *model,
     float center_x,
