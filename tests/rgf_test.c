@@ -180,6 +180,15 @@ void rgf_test_parse_obj(void)
   assert_equalsf(model.center_x, 0.005490f, RGF_TEST_EPSILON);
   assert_equalsf(model.center_y, -0.094505f, RGF_TEST_EPSILON);
   assert_equalsf(model.center_z, -0.083813f, RGF_TEST_EPSILON);
+
+  /* Center the model */
+  rgf_model_center(&model, 0.0f, 0.0f, 0.0f);
+
+  assert_equalsf(model.center_x, 0.0f, RGF_TEST_EPSILON);
+  assert_equalsf(model.center_y, 0.0f, RGF_TEST_EPSILON);
+  assert_equalsf(model.center_z, 0.0f, RGF_TEST_EPSILON);
+  assert_equalsf(model.min_x, model.min_x + model.center_x, RGF_TEST_EPSILON);
+  assert_equalsf(model.max_x, model.max_x - model.center_x, RGF_TEST_EPSILON);
 }
 
 int main(void)

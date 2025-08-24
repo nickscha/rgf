@@ -357,6 +357,49 @@ RGF_API RGF_INLINE int rgf_parse_obj(
 }
 
 /* ########################################################## */
+/* # Geometry manipulation functions                          */
+/* ########################################################## */
+RGF_API RGF_INLINE void rgf_model_center(
+    rgf_model *model,
+    float center_x,
+    float center_y,
+    float center_z)
+{
+  float current_center_x, current_center_y, current_center_z;
+  float offset_x, offset_y, offset_z;
+  unsigned long i;
+
+  /* Calculate the current center of the model's bounding box */
+  current_center_x = (model->min_x + model->max_x) / 2.0f;
+  current_center_y = (model->min_y + model->max_y) / 2.0f;
+  current_center_z = (model->min_z + model->max_z) / 2.0f;
+
+  /* Determine the offset needed to move to the new center */
+  offset_x = center_x - current_center_x;
+  offset_y = center_y - current_center_y;
+  offset_z = center_z - current_center_z;
+
+  /* Apply the offset to every vertex */
+  for (i = 0; i < model->vertices_size; i += 3)
+  {
+    model->vertices[i + 0] += offset_x;
+    model->vertices[i + 1] += offset_y;
+    model->vertices[i + 2] += offset_z;
+  }
+
+  /* Update the model's bounding box and center properties */
+  model->min_x += offset_x;
+  model->max_x += offset_x;
+  model->min_y += offset_y;
+  model->max_y += offset_y;
+  model->min_z += offset_z;
+  model->max_z += offset_z;
+  model->center_x = center_x;
+  model->center_y = center_y;
+  model->center_z = center_z;
+}
+
+/* ########################################################## */
 /* # Binary En-/Decoding of rgf data                          */
 /* ########################################################## */
 #define RGF_BINARY_VERSION 1
