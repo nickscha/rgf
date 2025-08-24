@@ -130,12 +130,14 @@ void rgf_test_parse_obj(void)
   /* Stack Memory */
   float vertices_buffer[30000];
   int indices_buffer[60000];
+  float normals_buffer[30000];
   unsigned char binary_buffer[1500000];
   unsigned long binary_buffer_size = 0;
 
   rgf_model model = {0};
   model.vertices = vertices_buffer;
   model.indices = indices_buffer;
+  model.normals = normals_buffer;
 
   assert(rgf_platform_read("head.obj", binary_buffer, 1500000, &binary_buffer_size));
   assert(rgf_parse_obj(&model, binary_buffer, binary_buffer_size));
@@ -220,6 +222,9 @@ void rgf_test_parse_obj(void)
   assert_equalsf(model.center_x, 0.005490f, RGF_TEST_EPSILON);
   assert_equalsf(model.center_y, -0.094505f, RGF_TEST_EPSILON);
   assert_equalsf(model.center_z, -0.083813f, RGF_TEST_EPSILON);
+
+  /* Calculate the normals */
+  rgf_model_calculate_normals(&model);
 }
 
 int main(void)

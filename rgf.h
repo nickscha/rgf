@@ -38,6 +38,7 @@ typedef struct rgf_model
 
   unsigned long vertices_size;
   unsigned long indices_size;
+  unsigned long normals_size;
 
   float min_x;
   float min_y;
@@ -61,6 +62,7 @@ typedef struct rgf_model
 
   float *vertices;
   int *indices;
+  float *normals;
 
 } rgf_model;
 
@@ -138,6 +140,65 @@ RGF_API RGF_INLINE float rgf_atof(char *s, int *consumed)
   *consumed = i;
 
   return value * (float)sign;
+}
+
+/* ########################################################## */
+/* # Utility Vector Functions                                 */
+/* ########################################################## */
+RGF_API RGF_INLINE float rgf_sqrtf(float f)
+{
+  float guess = f / 2.0f;
+
+  /* Perform a few iterations of Newton-Raphson to refine the guess */
+  guess = 0.5f * (guess + f / guess);
+  guess = 0.5f * (guess + f / guess);
+  guess = 0.5f * (guess + f / guess);
+  guess = 0.5f * (guess + f / guess);
+  guess = 0.5f * (guess + f / guess);
+
+  return guess;
+}
+
+RGF_API RGF_INLINE void rgf_vec3_sub(float *out, float *a, float *b)
+{
+  out[0] = a[0] - b[0];
+  out[1] = a[1] - b[1];
+  out[2] = a[2] - b[2];
+}
+
+RGF_API RGF_INLINE void rgf_vec3_add(float *out, float *a, float *b)
+{
+  out[0] = a[0] + b[0];
+  out[1] = a[1] + b[1];
+  out[2] = a[2] + b[2];
+}
+
+RGF_API RGF_INLINE void rgf_vec3_cross(float *out, float *a, float *b)
+{
+  out[0] = a[1] * b[2] - a[2] * b[1];
+  out[1] = a[2] * b[0] - a[0] * b[2];
+  out[2] = a[0] * b[1] - a[1] * b[0];
+}
+
+RGF_API RGF_INLINE float rgf_vec3_length(float *v)
+{
+  return rgf_sqrtf((v[0] * v[0] + v[1] * v[1] + v[2] * v[2]));
+}
+
+RGF_API RGF_INLINE void rgf_vec3_normalize(float *out, float *v)
+{
+  float len = rgf_vec3_length(v);
+  if (len > 0.0f)
+  {
+    float inv_len = 1.0f / len;
+    out[0] = v[0] * inv_len;
+    out[1] = v[1] * inv_len;
+    out[2] = v[2] * inv_len;
+  }
+  else
+  {
+    out[0] = out[1] = out[2] = 0.0f;
+  }
 }
 
 /* ########################################################## */
@@ -382,6 +443,61 @@ RGF_API RGF_INLINE int rgf_parse_obj(
   model->current_scale = 1.0f;
 
   return 1;
+}
+
+RGF_API RGF_INLINE void rgf_model_calculate_normals(rgf_model *model)
+{
+  unsigned long i;
+  float v1[3], v2[3], v3[3];
+  float edge1[3], edge2[3];
+  float face_normal[3];
+  int idx1, idx2, idx3;
+
+  /* Initialize all normals to zero */
+  for (i = 0; i < model->vertices_size; ++i)
+  {
+    model->normals[i] = 0.0f;
+  }
+
+  /* Iterate through each triangle in the model */
+  for (i = 0; i < model->indices_size; i += 3)
+  {
+    /* Get the indices for the three vertices of the current triangle */
+    idx1 = model->indices[i + 0];
+    idx2 = model->indices[i + 1];
+    idx3 = model->indices[i + 2];
+
+    /* Get the vertex positions */
+    v1[0] = model->vertices[idx1 * 3 + 0];
+    v1[1] = model->vertices[idx1 * 3 + 1];
+    v1[2] = model->vertices[idx1 * 3 + 2];
+
+    v2[0] = model->vertices[idx2 * 3 + 0];
+    v2[1] = model->vertices[idx2 * 3 + 1];
+    v2[2] = model->vertices[idx2 * 3 + 2];
+
+    v3[0] = model->vertices[idx3 * 3 + 0];
+    v3[1] = model->vertices[idx3 * 3 + 1];
+    v3[2] = model->vertices[idx3 * 3 + 2];
+
+    /* Calculate the two edge vectors for the triangle */
+    rgf_vec3_sub(edge1, v2, v1);
+    rgf_vec3_sub(edge2, v3, v1);
+
+    /* Compute the cross product to get the face normal */
+    rgf_vec3_cross(face_normal, edge1, edge2);
+
+    /* Add this face normal to the vertex normals of all three vertices */
+    rgf_vec3_add(&model->normals[idx1 * 3], &model->normals[idx1 * 3], face_normal);
+    rgf_vec3_add(&model->normals[idx2 * 3], &model->normals[idx2 * 3], face_normal);
+    rgf_vec3_add(&model->normals[idx3 * 3], &model->normals[idx3 * 3], face_normal);
+  }
+
+  /* Normalize each vertex normal to get the final smooth normal */
+  for (i = 0; i < model->vertices_size; i += 3)
+  {
+    rgf_vec3_normalize(&model->normals[i], &model->normals[i]);
+  }
 }
 
 /* ########################################################## */
