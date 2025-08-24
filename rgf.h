@@ -38,6 +38,8 @@ typedef struct rgf_model
 
   unsigned long vertices_size;
   unsigned long normals_size;
+  unsigned long tangents_size;
+  unsigned long bitangents_size;
   unsigned long uvs_size; /* Number of floats in the uvs array */
   unsigned long indices_size;
 
@@ -61,10 +63,12 @@ typedef struct rgf_model
   float original_max_dim; /* The largest dimension of the model before any scaling. */
   float current_scale;    /* The current scaling factor relative to the original.  */
 
-  float *vertices;
-  float *normals;
-  float *uvs; /* Texture coordinates: size = (vertices_size / 3) * 2 */
-  int *indices;
+  float *vertices;   /* The vertex data */
+  float *normals;    /* Normals data */
+  float *tangents;   /* Point along the U-axis of the texture*/
+  float *bitangents; /* Point along the V-axis of the texture. */
+  float *uvs;        /* Texture coordinates: size = (vertices_size / 3) * 2 */
+  int *indices;      /* Vertex indices data */
 
 } rgf_model;
 
@@ -525,6 +529,99 @@ RGF_API RGF_INLINE void rgf_model_calculate_normals(rgf_model *model)
   for (i = 0; i < model->vertices_size; i += 3)
   {
     rgf_vec3_normalize(&model->normals[i], &model->normals[i]);
+  }
+}
+
+RGF_API RGF_INLINE void rgf_model_calculate_tangents_bitangents(rgf_model *model)
+{
+  unsigned long i;
+
+  if (!model || !model->vertices || !model->indices || !model->uvs)
+  {
+    return;
+  }
+
+  model->tangents_size = model->vertices_size;
+  model->bitangents_size = model->vertices_size;
+
+  /* Initialize to zero */
+  for (i = 0; i < model->vertices_size; ++i)
+  {
+    model->tangents[i] = 0.0f;
+    model->bitangents[i] = 0.0f;
+  }
+
+  /* Loop through each triangle */
+  for (i = 0; i < model->indices_size; i += 3)
+  {
+    unsigned long j;
+
+    int i1 = model->indices[i + 0];
+    int i2 = model->indices[i + 1];
+    int i3 = model->indices[i + 2];
+
+    /* Vertex positions */
+    float *v0 = &model->vertices[i1 * 3];
+    float *v1 = &model->vertices[i2 * 3];
+    float *v2 = &model->vertices[i3 * 3];
+
+    /* UV coordinates */
+    float *uv0 = &model->uvs[i1 * 2];
+    float *uv1 = &model->uvs[i2 * 2];
+    float *uv2 = &model->uvs[i3 * 2];
+
+    /* Edges of the triangle : position delta */
+    float deltaPos1[3], deltaPos2[3];
+
+    /* UV delta */
+    float deltaUV1[2];
+    float deltaUV2[2];
+
+    /* Calculate r = 1 / (determinant of UV matrix) */
+    float r;
+
+    float tangent[3];
+    float bitangent[3];
+
+    deltaUV1[0] = uv1[0] - uv0[0];
+    deltaUV1[1] = uv1[1] - uv0[1];
+
+    deltaUV2[0] = uv2[0] - uv0[0];
+    deltaUV2[1] = uv2[1] - uv0[1];
+
+    r = deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0];
+    r = r != 0.0f ? 1.0f / r : 0.0f;
+
+    rgf_vec3_sub(deltaPos1, v1, v0);
+    rgf_vec3_sub(deltaPos2, v2, v0);
+
+    /* Tangent & Bitangent */
+    tangent[0] = (deltaPos1[0] * deltaUV2[1] - deltaPos2[0] * deltaUV1[1]) * r;
+    tangent[1] = (deltaPos1[1] * deltaUV2[1] - deltaPos2[1] * deltaUV1[1]) * r;
+    tangent[2] = (deltaPos1[2] * deltaUV2[1] - deltaPos2[2] * deltaUV1[1]) * r;
+
+    bitangent[0] = (deltaPos2[0] * deltaUV1[0] - deltaPos1[0] * deltaUV2[0]) * r;
+    bitangent[1] = (deltaPos2[1] * deltaUV1[0] - deltaPos1[1] * deltaUV2[0]) * r;
+    bitangent[2] = (deltaPos2[2] * deltaUV1[0] - deltaPos1[2] * deltaUV2[0]) * r;
+
+    /* Add tangent and bitangent to each vertex of the triangle */
+    for (j = 0; j < 3; ++j)
+    {
+      model->tangents[(model->indices[i + j]) * 3 + 0] += tangent[0];
+      model->tangents[(model->indices[i + j]) * 3 + 1] += tangent[1];
+      model->tangents[(model->indices[i + j]) * 3 + 2] += tangent[2];
+
+      model->bitangents[(model->indices[i + j]) * 3 + 0] += bitangent[0];
+      model->bitangents[(model->indices[i + j]) * 3 + 1] += bitangent[1];
+      model->bitangents[(model->indices[i + j]) * 3 + 2] += bitangent[2];
+    }
+  }
+
+  /* Normalize tangents and bitangents */
+  for (i = 0; i < model->vertices_size; i += 3)
+  {
+    rgf_vec3_normalize(&model->tangents[i], &model->tangents[i]);
+    rgf_vec3_normalize(&model->bitangents[i], &model->bitangents[i]);
   }
 }
 
