@@ -125,11 +125,69 @@ void rgf_test_decode_from_file(void)
   assert(model.indices[1] == 1);
 }
 
+void rgf_test_parse_obj(void)
+{
+  /* Stack Memory */
+  float vertices_buffer[30000];
+  int indices_buffer[60000];
+  unsigned char binary_buffer[1500000];
+  unsigned long binary_buffer_size = 0;
+
+  rgf_model model = {0};
+  model.vertices = vertices_buffer;
+  model.indices = indices_buffer;
+
+  assert(rgf_platform_read("head.obj", binary_buffer, 1500000, &binary_buffer_size));
+  assert(rgf_parse_obj(&model, binary_buffer, binary_buffer_size));
+
+  assert(model.vertices_size > 0);
+  assert(model.indices_size > 0);
+
+  assert(model.vertices_size == 26532UL);
+  assert(model.indices_size == 53052UL);
+
+  /* Check vertices values */
+  assert_equalsf(model.vertices[0], 0.028666f, RGF_TEST_EPSILON);
+  assert_equalsf(model.vertices[1], 0.031898f, RGF_TEST_EPSILON);
+  assert_equalsf(model.vertices[2], -0.184875f, RGF_TEST_EPSILON);
+
+  assert_equalsf(model.vertices[model.vertices_size - 3], -0.077342f, RGF_TEST_EPSILON);
+  assert_equalsf(model.vertices[model.vertices_size - 2], -0.000485f, RGF_TEST_EPSILON);
+  assert_equalsf(model.vertices[model.vertices_size - 1], -0.071214f, RGF_TEST_EPSILON);
+
+  /* Check indices triangulation (n-gons) */
+  assert(model.indices[0] == 200);
+  assert(model.indices[1] == 2189);
+  assert(model.indices[2] == 2193);
+  assert(model.indices[3] == 200);
+  assert(model.indices[4] == 2193);
+  assert(model.indices[5] == 2192);
+
+  assert(model.indices[model.indices_size - 6] == 7904);
+  assert(model.indices[model.indices_size - 5] == 8843);
+  assert(model.indices[model.indices_size - 4] == 7906);
+  assert(model.indices[model.indices_size - 3] == 7904);
+  assert(model.indices[model.indices_size - 2] == 7906);
+  assert(model.indices[model.indices_size - 1] == 1263);
+
+  /* Check model boundaries */
+  assert_equalsf(model.min_x, -0.221155f, RGF_TEST_EPSILON);
+  assert_equalsf(model.min_y, -0.305050f, RGF_TEST_EPSILON);
+  assert_equalsf(model.min_z, -0.221103f, RGF_TEST_EPSILON);
+  assert_equalsf(model.max_x, 0.232135f, RGF_TEST_EPSILON);
+  assert_equalsf(model.max_y, 0.116040f, RGF_TEST_EPSILON);
+  assert_equalsf(model.max_z, 0.053476f, RGF_TEST_EPSILON);
+  assert_equalsf(model.center_x, 0.005490f, RGF_TEST_EPSILON);
+  assert_equalsf(model.center_y, -0.094505f, RGF_TEST_EPSILON);
+  assert_equalsf(model.center_z, -0.083813f, RGF_TEST_EPSILON);
+}
+
 int main(void)
 {
   rgf_test_encode_decode();
   rgf_test_encode_to_file();
   rgf_test_decode_from_file();
+  rgf_test_parse_obj();
 
   return 0;
 }

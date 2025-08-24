@@ -15,10 +15,26 @@ For more information please look at the "rgf.h" file or take a look at the "exam
 Download or clone rgf.h and include it in your project.
 
 ```C
-#include "rgf.h"                /* Raw Geometry Format                          */
-#include "rgf_platform_write.h" /* Optional: OS-Specific read/write file IO API */
+#include "rgf.h"             /* Raw Geometry Format                          */
+#include "rgf_platform_io.h" /* Optional: OS-Specific read/write file IO API */
 
 int main() {
+
+    /* For simplicity we assign some stack memory for storing vertices and indices data */
+    float vertices_buffer[30000];
+    int indices_buffer[60000];
+    unsigned char binary_buffer[1500000];
+    unsigned long binary_buffer_size = 0;
+
+    rgf_model model = {0};
+    model.vertices = vertices_buffer;
+    model.indices = indices_buffer;
+
+    /* Just for demonstration we use a small utility to read a file (nostdlib but platform specific) */
+    rgf_platform_read("head.obj", binary_buffer, 1500000, &binary_buffer_size);
+
+    /* Parses the obj file into the rgf data model */
+    rgf_parse_obj(&model, binary_buffer, binary_buffer_size);
 
     return 0;
 }

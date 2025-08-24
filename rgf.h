@@ -18,7 +18,7 @@ LICENSE
 /* Check if using C99 or later (inline is supported) */
 #if __STDC_VERSION__ >= 199901L
 #define RGF_INLINE inline
-#define RGF_API extern
+#define RGF_API static
 #elif defined(__GNUC__) || defined(__clang__)
 #define RGF_INLINE __inline__
 #define RGF_API static
@@ -57,22 +57,301 @@ typedef struct rgf_model
 } rgf_model;
 
 /* ########################################################## */
+/* # Utility String functions                                 */
+/* ########################################################## */
+RGF_API RGF_INLINE int rgf_is_space(char c)
+{
+  return (c == ' ' || c == '\t' || c == '\r' || c == '\n');
+}
+
+RGF_API RGF_INLINE int rgf_atoi(char *s, int *consumed)
+{
+  int sign = 1;
+  int value = 0;
+  int i = 0;
+
+  if (s[i] == '-')
+  {
+    sign = -1;
+    i++;
+  }
+  else if (s[i] == '+')
+  {
+    i++;
+  }
+
+  while (s[i] >= '0' && s[i] <= '9')
+  {
+    value = value * 10 + (s[i] - '0');
+    i++;
+  }
+
+  *consumed = i;
+
+  return value * sign;
+}
+
+RGF_API RGF_INLINE float rgf_atof(char *s, int *consumed)
+{
+  int i = 0;
+  int sign = 1;
+  float value = 0.0f;
+  float frac = 0.0f;
+  float divisor = 1.0f;
+
+  if (s[i] == '-')
+  {
+    sign = -1;
+    i++;
+  }
+  else if (s[i] == '+')
+  {
+    i++;
+  }
+
+  while (s[i] >= '0' && s[i] <= '9')
+  {
+    value = value * 10.0f + (float)(s[i] - '0');
+    i++;
+  }
+
+  if (s[i] == '.')
+  {
+    i++;
+    while (s[i] >= '0' && s[i] <= '9')
+    {
+      frac = frac * 10.0f + (float)(s[i] - '0');
+      divisor *= 10.0f;
+      i++;
+    }
+    value += frac / divisor;
+  }
+
+  *consumed = i;
+
+  return value * (float)sign;
+}
+
+/* ########################################################## */
 /* # OBJ to RGF conversion funciton                           */
 /* ########################################################## */
-RGF_API RGF_INLINE int rgf_convert_obj(
-    rgf_model *model,              /* The filled by supplied obj file data model      */
-    unsigned char *obj_binary,     /* OBJ File binary buffer                          */
-    unsigned long obj_binary_size, /* OBJ File binary buffer size                     */
-    float center_position[3],      /* Where should the model be cenetered             */
-    float scale_target             /* Model normalization 1.0f = 1x1x1 dimension, ... */
+#ifndef RGF_OBJ_MAX_FACE_VERTICES
+#define RGF_OBJ_MAX_FACE_VERTICES 8
+#endif
+
+RGF_API RGF_INLINE int rgf_parse_obj(
+    rgf_model *model,             /* The filled by supplied obj file data model      */
+    unsigned char *obj_binary,    /* OBJ File binary buffer                          */
+    unsigned long obj_binary_size /* OBJ File binary buffer size                     */
 )
 {
+  unsigned long i = 0;
+  unsigned long vertex_count = 0;
+  unsigned long triangle_count = 0;
+  unsigned long v_index = 0;
+  unsigned long f_index = 0;
+  int face_indices_temp[RGF_OBJ_MAX_FACE_VERTICES];
+  int face_vertices_count;
 
   /* Check input arguments */
-  if (!model || !obj_binary || obj_binary_size <= 0 || !center_position || scale_target <= 0.0f)
+  if (!model || !obj_binary || obj_binary_size <= 0)
   {
     return 0;
   }
+
+  /* First pass: count vertices & triangles */
+  i = 0;
+
+  while (i < obj_binary_size)
+  {
+    if (obj_binary[i] == 'v' && obj_binary[i + 1] == ' ')
+    {
+      vertex_count++;
+    }
+    else if (obj_binary[i] == 'f' && obj_binary[i + 1] == ' ')
+    {
+      unsigned long j = i + 2;
+      int current_char_is_digit;
+
+      face_vertices_count = 0;
+
+      while (j < obj_binary_size && obj_binary[j] != '\n' && obj_binary[j] != '\r')
+      {
+        current_char_is_digit = obj_binary[j] >= '0' && obj_binary[j] <= '9';
+
+        if (current_char_is_digit || obj_binary[j] == '-')
+        {
+          face_vertices_count++;
+          /* Skip to end of number, ignoring slashes */
+          while (j < obj_binary_size && obj_binary[j] != ' ' && obj_binary[j] != '\n' && obj_binary[j] != '\r')
+          {
+            j++;
+          }
+        }
+        else
+        {
+          j++;
+        }
+      }
+
+      if (face_vertices_count >= 3)
+      {
+        triangle_count += (unsigned long)(face_vertices_count - 2);
+      }
+    }
+
+    while (i < obj_binary_size && obj_binary[i] != '\n')
+    {
+      i++;
+    }
+    i++;
+  }
+
+  /* Allocate arrays */
+  model->vertices_size = vertex_count * 3;
+  model->indices_size = triangle_count * 3;
+
+  if (!model->vertices || !model->indices)
+  {
+    return 0;
+  }
+
+  /* Second pass: parse data */
+  i = 0;
+  model->min_x = model->min_y = model->min_z = 1e30f;
+  model->max_x = model->max_y = model->max_z = -1e30f;
+
+  while (i < obj_binary_size)
+  {
+    if (obj_binary[i] == 'v' && obj_binary[i + 1] == ' ')
+    {
+      int consumed = 0;
+
+      i += 2;
+
+      model->vertices[v_index] = rgf_atof((char *)(obj_binary + i), &consumed);
+
+      if (model->vertices[v_index] < model->min_x)
+      {
+        model->min_x = model->vertices[v_index];
+      }
+
+      if (model->vertices[v_index] > model->max_x)
+      {
+        model->max_x = model->vertices[v_index];
+      }
+
+      i += (unsigned long)consumed;
+      v_index++;
+
+      while (rgf_is_space((char)obj_binary[i]))
+      {
+        i++;
+      }
+
+      model->vertices[v_index] = rgf_atof((char *)(obj_binary + i), &consumed);
+
+      if (model->vertices[v_index] < model->min_y)
+      {
+        model->min_y = model->vertices[v_index];
+      }
+
+      if (model->vertices[v_index] > model->max_y)
+      {
+        model->max_y = model->vertices[v_index];
+      }
+
+      i += (unsigned long)consumed;
+      v_index++;
+
+      while (rgf_is_space((char)obj_binary[i]))
+      {
+        i++;
+      }
+
+      model->vertices[v_index] = rgf_atof((char *)(obj_binary + i), &consumed);
+
+      if (model->vertices[v_index] < model->min_z)
+      {
+        model->min_z = model->vertices[v_index];
+      }
+
+      if (model->vertices[v_index] > model->max_z)
+      {
+        model->max_z = model->vertices[v_index];
+      }
+
+      i += (unsigned long)consumed;
+      v_index++;
+    }
+    else if (obj_binary[i] == 'f' && obj_binary[i + 1] == ' ')
+    {
+      int consumed = 0;
+      int j;
+      int current_index;
+
+      i += 2;
+      face_vertices_count = 0;
+
+      /* Parse all vertex indices on the line */
+      while (i < obj_binary_size && obj_binary[i] != '\n' && obj_binary[i] != '\r' && face_vertices_count < RGF_OBJ_MAX_FACE_VERTICES)
+      {
+        /* Skip non-numeric characters before the vertex index */
+        while (i < obj_binary_size && rgf_is_space((char)obj_binary[i]))
+        {
+          i++;
+        }
+
+        if (i >= obj_binary_size || obj_binary[i] == '\n' || obj_binary[i] == '\r')
+        {
+          break;
+        }
+
+        current_index = rgf_atoi((char *)(obj_binary + i), &consumed);
+        i += (unsigned long)consumed;
+
+        /* Skip any texture/normal indices and the trailing space/newline */
+        while (i < obj_binary_size && !rgf_is_space((char)obj_binary[i]) && obj_binary[i] != '\n' && obj_binary[i] != '\r')
+        {
+          i++;
+        }
+
+        /* Handle negative indices (relative to the end of the vertex count) */
+        if (current_index < 0)
+        {
+          current_index = (int)vertex_count + current_index;
+        }
+        else
+        {
+          current_index = current_index - 1; /* Convert to 0-based */
+        }
+
+        face_indices_temp[face_vertices_count] = current_index;
+        face_vertices_count++;
+      }
+
+      /* Triangulate the face using a fan method */
+      if (face_vertices_count >= 3)
+      {
+        for (j = 1; j < face_vertices_count - 1; j++)
+        {
+          model->indices[f_index++] = face_indices_temp[0];
+          model->indices[f_index++] = face_indices_temp[j];
+          model->indices[f_index++] = face_indices_temp[j + 1];
+        }
+      }
+    }
+
+    while (i < obj_binary_size && obj_binary[i] != '\n')
+    {
+      i++;
+    }
+    i++;
+  }
+
+  model->center_x = (model->min_x + model->max_x) * 0.5f;
+  model->center_y = (model->min_y + model->max_y) * 0.5f;
+  model->center_z = (model->min_z + model->max_z) * 0.5f;
 
   return 1;
 }
@@ -88,7 +367,7 @@ RGF_API RGF_INLINE int rgf_convert_obj(
 RGF_API RGF_INLINE void *rgf_binary_memcpy(void *dest, void *src, unsigned long count)
 {
   char *dest8 = (char *)dest;
-  const char *src8 = (char *)src;
+  char *src8 = (char *)src;
   while (count--)
   {
     *dest8++ = *src8++;
