@@ -191,7 +191,21 @@ void rgf_test_parse_obj(void)
   assert_equalsf(model.min_x, model.min_x + model.center_x, RGF_TEST_EPSILON);
   assert_equalsf(model.max_x, model.max_x - model.center_x, RGF_TEST_EPSILON);
 
-  
+  assert_equalsf(model.min_x, -0.226645f, RGF_TEST_EPSILON);
+
+  /* Scale the model */
+  rgf_model_scale(&model, 1.0f);
+
+  /* Check scaling values */
+  assert_equalsf(model.min_x, -0.500000f, RGF_TEST_EPSILON);
+  assert_equalsf(model.max_x, 0.500000f, RGF_TEST_EPSILON);
+  assert_equalsf(model.min_x, model.min_x + model.center_x, RGF_TEST_EPSILON);
+  assert_equalsf(model.max_x, model.max_x - model.center_x, RGF_TEST_EPSILON);
+
+  /* Reset the scale to the original version */
+  rgf_model_scale_reset(&model);
+
+  assert_equalsf(model.min_x, -0.226645f, RGF_TEST_EPSILON);
 }
 
 int main(void)

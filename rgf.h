@@ -51,6 +51,9 @@ typedef struct rgf_model
   float center_y;
   float center_z;
 
+  float original_max_dim; /* The largest dimension of the model before any scaling. */
+  float current_scale;    /* The current scaling factor relative to the original.  */
+
   float *vertices;
   int *indices;
 
@@ -353,6 +356,18 @@ RGF_API RGF_INLINE int rgf_parse_obj(
   model->center_y = (model->min_y + model->max_y) * 0.5f;
   model->center_z = (model->min_z + model->max_z) * 0.5f;
 
+  /* Calculate the initial dimensions and set scale */
+  model->original_max_dim = model->max_x - model->min_x;
+  if (model->max_y - model->min_y > model->original_max_dim)
+  {
+    model->original_max_dim = model->max_y - model->min_y;
+  }
+  if (model->max_z - model->min_z > model->original_max_dim)
+  {
+    model->original_max_dim = model->max_z - model->min_z;
+  }
+  model->current_scale = 1.0f;
+
   return 1;
 }
 
@@ -397,6 +412,102 @@ RGF_API RGF_INLINE void rgf_model_center(
   model->center_x = center_x;
   model->center_y = center_y;
   model->center_z = center_z;
+}
+
+RGF_API RGF_INLINE void rgf_model_scale(
+    rgf_model *model,
+    float scale)
+{
+  unsigned long i;
+  float new_scale_factor;
+
+  /* Handle degenerate case of no vertices */
+  if (model->original_max_dim <= 0.0f)
+  {
+    return;
+  }
+
+  /* Calculate the desired scaling factor */
+  new_scale_factor = scale / model->original_max_dim;
+
+  /* Avoid redundant scaling if already at the desired scale */
+  if (new_scale_factor == model->current_scale)
+  {
+    return;
+  }
+
+  /* Calculate the actual scaling factor to apply incrementally */
+  new_scale_factor = new_scale_factor / model->current_scale;
+
+  /* Apply the new scaling factor to all vertices */
+  for (i = 0; i < model->vertices_size; i++)
+  {
+    model->vertices[i] *= new_scale_factor;
+  }
+
+  /* Update the model's bounding box and scale properties */
+  model->min_x *= new_scale_factor;
+  model->max_x *= new_scale_factor;
+  model->min_y *= new_scale_factor;
+  model->max_y *= new_scale_factor;
+  model->min_z *= new_scale_factor;
+  model->max_z *= new_scale_factor;
+  model->center_x *= new_scale_factor;
+  model->center_y *= new_scale_factor;
+  model->center_z *= new_scale_factor;
+  model->current_scale *= new_scale_factor;
+}
+
+RGF_API RGF_INLINE void rgf_model_scale_reset(
+    rgf_model *model)
+{
+  unsigned long i;
+  float reset_factor;
+
+  /* Handle degenerate cases */
+  if (model->original_max_dim <= 0.0f || model->current_scale == 1.0f)
+  {
+    return;
+  }
+
+  /* Calculate the inverse of the current scale to revert to original size */
+  reset_factor = 1.0f / model->current_scale;
+
+  /* Apply the reset factor to all vertices */
+  for (i = 0; i < model->vertices_size; i++)
+  {
+    model->vertices[i] *= reset_factor;
+  }
+
+  /* Recalculate the bounds from the new vertices */
+  model->min_x = model->vertices[0];
+  model->max_x = model->vertices[0];
+  model->min_y = model->vertices[1];
+  model->max_y = model->vertices[1];
+  model->min_z = model->vertices[2];
+  model->max_z = model->vertices[2];
+
+  for (i = 3; i < model->vertices_size; i += 3)
+  {
+    if (model->vertices[i] < model->min_x)
+      model->min_x = model->vertices[i];
+    if (model->vertices[i] > model->max_x)
+      model->max_x = model->vertices[i];
+    if (model->vertices[i + 1] < model->min_y)
+      model->min_y = model->vertices[i + 1];
+    if (model->vertices[i + 1] > model->max_y)
+      model->max_y = model->vertices[i + 1];
+    if (model->vertices[i + 2] < model->min_z)
+      model->min_z = model->vertices[i + 2];
+    if (model->vertices[i + 2] > model->max_z)
+      model->max_z = model->vertices[i + 2];
+  }
+
+  /* Update the center and current scale */
+  model->center_x = (model->min_x + model->max_x) / 2.0f;
+  model->center_y = (model->min_y + model->max_y) / 2.0f;
+  model->center_z = (model->min_z + model->max_z) / 2.0f;
+  model->current_scale = 1.0f;
 }
 
 /* ########################################################## */
