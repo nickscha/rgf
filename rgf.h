@@ -165,35 +165,35 @@ RGF_API RGF_INLINE float rgf_sqrtf(float f)
   return guess;
 }
 
-RGF_API RGF_INLINE void rgf_vec3_sub(float *out, float *a, float *b)
+RGF_API RGF_INLINE void rgf_v3_sub(float *out, float *a, float *b)
 {
   out[0] = a[0] - b[0];
   out[1] = a[1] - b[1];
   out[2] = a[2] - b[2];
 }
 
-RGF_API RGF_INLINE void rgf_vec3_add(float *out, float *a, float *b)
+RGF_API RGF_INLINE void rgf_v3_add(float *out, float *a, float *b)
 {
   out[0] = a[0] + b[0];
   out[1] = a[1] + b[1];
   out[2] = a[2] + b[2];
 }
 
-RGF_API RGF_INLINE void rgf_vec3_cross(float *out, float *a, float *b)
+RGF_API RGF_INLINE void rgf_v3_cross(float *out, float *a, float *b)
 {
   out[0] = a[1] * b[2] - a[2] * b[1];
   out[1] = a[2] * b[0] - a[0] * b[2];
   out[2] = a[0] * b[1] - a[1] * b[0];
 }
 
-RGF_API RGF_INLINE float rgf_vec3_length(float *v)
+RGF_API RGF_INLINE float rgf_v3_length(float *v)
 {
   return rgf_sqrtf((v[0] * v[0] + v[1] * v[1] + v[2] * v[2]));
 }
 
-RGF_API RGF_INLINE void rgf_vec3_normalize(float *out, float *v)
+RGF_API RGF_INLINE void rgf_v3_normalize(float *out, float *v)
 {
-  float len = rgf_vec3_length(v);
+  float len = rgf_v3_length(v);
   if (len > 0.0f)
   {
     float inv_len = 1.0f / len;
@@ -513,22 +513,22 @@ RGF_API RGF_INLINE void rgf_model_calculate_normals(rgf_model *model)
     v3[2] = model->vertices[idx3 * 3 + 2];
 
     /* Calculate the two edge vectors for the triangle */
-    rgf_vec3_sub(edge1, v2, v1);
-    rgf_vec3_sub(edge2, v3, v1);
+    rgf_v3_sub(edge1, v2, v1);
+    rgf_v3_sub(edge2, v3, v1);
 
     /* Compute the cross product to get the face normal */
-    rgf_vec3_cross(face_normal, edge1, edge2);
+    rgf_v3_cross(face_normal, edge1, edge2);
 
     /* Add this face normal to the vertex normals of all three vertices */
-    rgf_vec3_add(&model->normals[idx1 * 3], &model->normals[idx1 * 3], face_normal);
-    rgf_vec3_add(&model->normals[idx2 * 3], &model->normals[idx2 * 3], face_normal);
-    rgf_vec3_add(&model->normals[idx3 * 3], &model->normals[idx3 * 3], face_normal);
+    rgf_v3_add(&model->normals[idx1 * 3], &model->normals[idx1 * 3], face_normal);
+    rgf_v3_add(&model->normals[idx2 * 3], &model->normals[idx2 * 3], face_normal);
+    rgf_v3_add(&model->normals[idx3 * 3], &model->normals[idx3 * 3], face_normal);
   }
 
   /* Normalize each vertex normal to get the final smooth normal */
   for (i = 0; i < model->vertices_size; i += 3)
   {
-    rgf_vec3_normalize(&model->normals[i], &model->normals[i]);
+    rgf_v3_normalize(&model->normals[i], &model->normals[i]);
   }
 }
 
@@ -592,8 +592,8 @@ RGF_API RGF_INLINE void rgf_model_calculate_tangents_bitangents(rgf_model *model
     r = deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0];
     r = r != 0.0f ? 1.0f / r : 0.0f;
 
-    rgf_vec3_sub(deltaPos1, v1, v0);
-    rgf_vec3_sub(deltaPos2, v2, v0);
+    rgf_v3_sub(deltaPos1, v1, v0);
+    rgf_v3_sub(deltaPos2, v2, v0);
 
     /* Tangent & Bitangent */
     tangent[0] = (deltaPos1[0] * deltaUV2[1] - deltaPos2[0] * deltaUV1[1]) * r;
@@ -620,8 +620,8 @@ RGF_API RGF_INLINE void rgf_model_calculate_tangents_bitangents(rgf_model *model
   /* Normalize tangents and bitangents */
   for (i = 0; i < model->vertices_size; i += 3)
   {
-    rgf_vec3_normalize(&model->tangents[i], &model->tangents[i]);
-    rgf_vec3_normalize(&model->bitangents[i], &model->bitangents[i]);
+    rgf_v3_normalize(&model->tangents[i], &model->tangents[i]);
+    rgf_v3_normalize(&model->bitangents[i], &model->bitangents[i]);
   }
 }
 
