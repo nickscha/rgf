@@ -22,7 +22,7 @@ int main() {
 
     /* For simplicity we assign some stack memory for storing vertices and indices data */
     float vertices_buffer[30000];
-    int indices_buffer[60000];
+    int   indices_buffer[60000];
     float normals_buffer[30000];
 
     /* The binary buffer is used for reading/writing files and encoding/decoding */
@@ -31,9 +31,9 @@ int main() {
     unsigned long binary_buffer_size = 0;
 
     rgf_model model = {0};
-    model.vertices = vertices_buffer;
-    model.indices = indices_buffer;
-    model.normals = normals_buffer;
+    model.vertices  = vertices_buffer;
+    model.indices   = indices_buffer;
+    model.normals   = normals_buffer;
 
     /* Just for demonstration we use a small utility to read a file (nostdlib but platform specific) */
     if (!rgf_platform_read("head.obj", binary_buffer, BINARY_BUFFER_CAPACITY, &binary_buffer_size)) {
@@ -75,7 +75,7 @@ int main() {
         }
 
         /* Decode the binary_buffer back to the rgf_model */
-        if (!rgf_binary_decode(binary_buffer, binary_buffer_size, &binary_model) {
+        if (!rgf_binary_decode(binary_buffer, binary_buffer_size, &binary_model)) {
             return 1;
         }
 
