@@ -827,16 +827,42 @@ RGF_API RGF_INLINE int rgf_binary_encode(
 {
   unsigned char *ptr = out_binary;
 
-  unsigned long size_vertices = model->vertices_size * sizeof(float);
-  unsigned long size_normals = model->normals_size * sizeof(float);
-  unsigned long size_indices = model->indices_size * sizeof(int);
-  unsigned long size_total = (unsigned long)(RGF_BINARY_SIZE_HEADER +    /* Header                                  */
-                                             3 * sizeof(unsigned long) + /* Vertices/Normals/Indices count          */
-                                             9 * sizeof(int) +           /* Boundaries of geometry (min,max,center) */
-                                             size_vertices +             /* Vertices data                           */
-                                             size_normals +              /* Normals data                            */
-                                             size_indices                /* Indices data                            */
-  );
+  unsigned long size_total =
+      (unsigned long)(RGF_BINARY_SIZE_HEADER +    /* Header                                      */
+                      6 * sizeof(unsigned long) + /* Vertices/Normals/Indices/... sizes          */
+                      14 * sizeof(int)            /* Boundaries of geometry (min,max,center,...) */
+      );
+
+  /* Depending on which data is set in the rgf model we calculate the total size needed to store */
+  if (model->vertices && model->vertices_size > 0)
+  {
+    size_total += (unsigned long)(model->vertices_size * sizeof(float));
+  }
+
+  if (model->normals && model->normals_size > 0)
+  {
+    size_total += (unsigned long)(model->normals_size * sizeof(float));
+  }
+
+  if (model->tangents && model->tangents_size > 0)
+  {
+    size_total += (unsigned long)(model->tangents_size * sizeof(float));
+  }
+
+  if (model->bitangents && model->bitangents_size > 0)
+  {
+    size_total += (unsigned long)(model->bitangents_size * sizeof(float));
+  }
+
+  if (model->uvs && model->uvs_size > 0)
+  {
+    size_total += (unsigned long)(model->uvs_size * sizeof(float));
+  }
+
+  if (model->indices && model->indices_size > 0)
+  {
+    size_total += (unsigned long)(model->indices_size * sizeof(int));
+  }
 
   if (out_binary_capacity < size_total)
   {
@@ -862,6 +888,12 @@ RGF_API RGF_INLINE int rgf_binary_encode(
   ptr += sizeof(unsigned long);
   rgf_binary_memcpy(ptr, &model->normals_size, (unsigned long)sizeof(unsigned long));
   ptr += sizeof(unsigned long);
+  rgf_binary_memcpy(ptr, &model->tangents_size, (unsigned long)sizeof(unsigned long));
+  ptr += sizeof(unsigned long);
+  rgf_binary_memcpy(ptr, &model->bitangents_size, (unsigned long)sizeof(unsigned long));
+  ptr += sizeof(unsigned long);
+  rgf_binary_memcpy(ptr, &model->uvs_size, (unsigned long)sizeof(unsigned long));
+  ptr += sizeof(unsigned long);
   rgf_binary_memcpy(ptr, &model->indices_size, (unsigned long)sizeof(unsigned long));
   ptr += sizeof(unsigned long);
 
@@ -886,12 +918,60 @@ RGF_API RGF_INLINE int rgf_binary_encode(
   rgf_binary_memcpy(ptr, &model->center_z, 4);
   ptr += 4;
 
-  rgf_binary_memcpy(ptr, model->vertices, size_vertices);
-  ptr += size_vertices;
-  rgf_binary_memcpy(ptr, model->normals, size_normals);
-  ptr += size_normals;
-  rgf_binary_memcpy(ptr, model->indices, size_indices);
-  ptr += size_indices;
+  rgf_binary_memcpy(ptr, &model->original_center_x, 4);
+  ptr += 4;
+  rgf_binary_memcpy(ptr, &model->original_center_y, 4);
+  ptr += 4;
+  rgf_binary_memcpy(ptr, &model->original_center_z, 4);
+  ptr += 4;
+
+  rgf_binary_memcpy(ptr, &model->original_max_dim, 4);
+  ptr += 4;
+  rgf_binary_memcpy(ptr, &model->current_scale, 4);
+  ptr += 4;
+
+  /* Depending on which data is set in the rgf model we copy the data into the binary buffer */
+  if (model->vertices && model->vertices_size > 0)
+  {
+    unsigned long size = model->vertices_size * sizeof(float);
+    rgf_binary_memcpy(ptr, model->vertices, size);
+    ptr += size;
+  }
+
+  if (model->normals && model->normals_size > 0)
+  {
+    unsigned long size = model->normals_size * sizeof(float);
+    rgf_binary_memcpy(ptr, model->normals, size);
+    ptr += size;
+  }
+
+  if (model->tangents && model->tangents_size > 0)
+  {
+    unsigned long size = model->tangents_size * sizeof(float);
+    rgf_binary_memcpy(ptr, model->tangents, size);
+    ptr += size;
+  }
+
+  if (model->bitangents && model->bitangents_size > 0)
+  {
+    unsigned long size = model->bitangents_size * sizeof(float);
+    rgf_binary_memcpy(ptr, model->bitangents, size);
+    ptr += size;
+  }
+
+  if (model->uvs && model->uvs_size > 0)
+  {
+    unsigned long size = model->uvs_size * sizeof(float);
+    rgf_binary_memcpy(ptr, model->uvs, size);
+    ptr += size;
+  }
+
+  if (model->indices && model->indices_size > 0)
+  {
+    unsigned long size = model->indices_size * sizeof(int);
+    rgf_binary_memcpy(ptr, model->indices, size);
+    ptr += size;
+  }
 
   *out_binary_size = size_total;
 
@@ -958,16 +1038,51 @@ RGF_API RGF_INLINE int rgf_binary_decode(
   binary_ptr += sizeof(unsigned long);
   model->normals_size = rgf_binary_read_ul(binary_ptr);
   binary_ptr += sizeof(unsigned long);
+  model->tangents_size = rgf_binary_read_ul(binary_ptr);
+  binary_ptr += sizeof(unsigned long);
+  model->bitangents_size = rgf_binary_read_ul(binary_ptr);
+  binary_ptr += sizeof(unsigned long);
+  model->uvs_size = rgf_binary_read_ul(binary_ptr);
+  binary_ptr += sizeof(unsigned long);
   model->indices_size = rgf_binary_read_ul(binary_ptr);
   binary_ptr += sizeof(unsigned long);
 
-  size_total = (unsigned long)(RGF_BINARY_SIZE_HEADER +               /* Header                                  */
-                               3 * sizeof(unsigned long) +            /* Vertices/Normals/Indices count           */
-                               9 * sizeof(float) +                    /* Boundaries of geometry (min,max,center) */
-                               model->vertices_size * sizeof(float) + /* Vertices data                           */
-                               model->normals_size * sizeof(float) +  /* Normals data                            */
-                               model->indices_size * sizeof(int)      /* Indices data                            */
-  );
+  size_total =
+      (unsigned long)(RGF_BINARY_SIZE_HEADER +    /* Header                                  */
+                      6 * sizeof(unsigned long) + /* Vertices/Normals/Indices count           */
+                      14 * sizeof(float)          /* Boundaries of geometry (min,max,center) */
+      );
+
+  /* Depending on which data is set in the rgf model we calculate the total size needed to store */
+  if (model->vertices && model->vertices_size > 0)
+  {
+    size_total += (unsigned long)(model->vertices_size * sizeof(float));
+  }
+
+  if (model->normals && model->normals_size > 0)
+  {
+    size_total += (unsigned long)(model->normals_size * sizeof(float));
+  }
+
+  if (model->tangents && model->tangents_size > 0)
+  {
+    size_total += (unsigned long)(model->tangents_size * sizeof(float));
+  }
+
+  if (model->bitangents && model->bitangents_size > 0)
+  {
+    size_total += (unsigned long)(model->bitangents_size * sizeof(float));
+  }
+
+  if (model->uvs && model->uvs_size > 0)
+  {
+    size_total += (unsigned long)(model->uvs_size * sizeof(float));
+  }
+
+  if (model->indices && model->indices_size > 0)
+  {
+    size_total += (unsigned long)(model->indices_size * sizeof(int));
+  }
 
   if (in_binary_size < size_total)
   {
@@ -996,14 +1111,53 @@ RGF_API RGF_INLINE int rgf_binary_decode(
   model->center_z = rgf_binary_read_float(binary_ptr);
   binary_ptr += 4;
 
-  model->vertices = (float *)binary_ptr;
-  binary_ptr += model->vertices_size * sizeof(float);
+  model->original_center_x = rgf_binary_read_float(binary_ptr);
+  binary_ptr += 4;
+  model->original_center_y = rgf_binary_read_float(binary_ptr);
+  binary_ptr += 4;
+  model->original_center_z = rgf_binary_read_float(binary_ptr);
+  binary_ptr += 4;
 
-  model->normals = (float *)binary_ptr;
-  binary_ptr += model->normals_size * sizeof(float);
+  model->original_max_dim = rgf_binary_read_float(binary_ptr);
+  binary_ptr += 4;
+  model->current_scale = rgf_binary_read_float(binary_ptr);
+  binary_ptr += 4;
 
-  model->indices = (int *)binary_ptr;
-  binary_ptr += model->indices_size * sizeof(int);
+  if (model->vertices_size > 0)
+  {
+    model->vertices = (float *)binary_ptr;
+    binary_ptr += model->vertices_size * sizeof(float);
+  }
+
+  if (model->normals_size > 0)
+  {
+    model->normals = (float *)binary_ptr;
+    binary_ptr += model->normals_size * sizeof(float);
+  }
+
+  if (model->tangents_size > 0)
+  {
+    model->tangents = (float *)binary_ptr;
+    binary_ptr += model->tangents_size * sizeof(float);
+  }
+
+  if (model->bitangents_size > 0)
+  {
+    model->bitangents = (float *)binary_ptr;
+    binary_ptr += model->bitangents_size * sizeof(float);
+  }
+
+  if (model->uvs_size > 0)
+  {
+    model->uvs = (float *)binary_ptr;
+    binary_ptr += model->uvs_size * sizeof(float);
+  }
+
+  if (model->indices_size > 0)
+  {
+    model->indices = (int *)binary_ptr;
+    binary_ptr += model->indices_size * sizeof(int);
+  }
 
   return 1;
 }
