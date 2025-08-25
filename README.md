@@ -25,7 +25,9 @@ int main() {
     int indices_buffer[60000];
     float normals_buffer[30000];
 
-    unsigned char binary_buffer[1500000];
+    /* The binary buffer is used for reading/writing files and encoding/decoding */
+    #define BINARY_BUFFER_CAPACITY 1500000
+    unsigned char binary_buffer[BINARY_BUFFER_CAPACITY];
     unsigned long binary_buffer_size = 0;
 
     rgf_model model = {0};
@@ -34,15 +36,18 @@ int main() {
     model.normals = normals_buffer;
 
     /* Just for demonstration we use a small utility to read a file (nostdlib but platform specific) */
-    rgf_platform_read("head.obj", binary_buffer, 1500000, &binary_buffer_size);
+    if (!rgf_platform_read("head.obj", binary_buffer, BINARY_BUFFER_CAPACITY, &binary_buffer_size)) {
+        return 1;
+    }
 
     /* Parses the obj file into the rgf data model */
-    rgf_parse_obj(&model, binary_buffer, binary_buffer_size);
+    if (!rgf_parse_obj(&model, binary_buffer, binary_buffer_size)) {
+        return 1;
+    }
 
     /* ########################################################## */
     /* # Geometry manipulation functions                          */
     /* ########################################################## */
-
     /* Center the model to a specified x,y,z position */
     rgf_model_center(&model, 0.0f, 0.0f, 0.0f);
 
@@ -53,10 +58,34 @@ int main() {
     rgf_model_scale_reset(&model);
 
     /* Reset the model back to its original position */
-    rgf_model_center(&model);
+    rgf_model_center_reset(&model);
 
     /* Calculate the normals */
     rgf_model_calculate_normals(&model);
+
+    /* ########################################################## */
+    /* # Encode/Decode rgf_model to binary                        */
+    /* ########################################################## */
+    {
+        rgf_model binary_model = {0};
+
+        /* Encode the rgf_model into a binary rgf */
+        if (!rgf_binary_encode(binary_buffer, BINARY_BUFFER_CAPACITY, &binary_buffer_size, &model)) {
+            return 1;
+        }
+
+        /* Decode the binary_buffer back to the rgf_model */
+        if (!rgf_binary_decode(binary_buffer, binary_buffer_size, &binary_model) {
+            return 1;
+        }
+
+        /* Example check of decoded version vs original rgf_model */
+        if (binary_model.vertices_size != model.vertices_size ||
+            binary_model.indices_size  != model.indices_size
+        ) {
+            return 1;
+        }
+    }
 
     return 0;
 }
