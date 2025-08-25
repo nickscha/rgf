@@ -431,7 +431,7 @@ RGF_API RGF_INLINE int rgf_parse_obj(
       /* Triangulate the face using a fan method */
       if (face_vertices_count >= 3)
       {
-        for (j = 1; j < face_vertices_count - 1; j++)
+        for (j = 1; j < face_vertices_count - 1; ++j)
         {
           model->indices[f_index++] = face_indices_temp[0];
           model->indices[f_index++] = face_indices_temp[j];
@@ -778,17 +778,29 @@ RGF_API RGF_INLINE void rgf_model_scale_reset(
   for (i = 3; i < model->vertices_size; i += 3)
   {
     if (model->vertices[i] < model->min_x)
+    {
       model->min_x = model->vertices[i];
+    }
     if (model->vertices[i] > model->max_x)
+    {
       model->max_x = model->vertices[i];
+    }
     if (model->vertices[i + 1] < model->min_y)
+    {
       model->min_y = model->vertices[i + 1];
+    }
     if (model->vertices[i + 1] > model->max_y)
+    {
       model->max_y = model->vertices[i + 1];
+    }
     if (model->vertices[i + 2] < model->min_z)
+    {
       model->min_z = model->vertices[i + 2];
+    }
     if (model->vertices[i + 2] > model->max_z)
+    {
       model->max_z = model->vertices[i + 2];
+    }
   }
 
   /* Update the center and current scale */
