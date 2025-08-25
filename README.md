@@ -87,6 +87,15 @@ int main() {
         }
     }
 
+    /* ########################################################## */
+    /* # Convert RGF data to a C89 single-header                  */
+    /* ########################################################## */
+    rgf_convert_to_c_header(&model, "head", binary_buffer, BINARY_BUFFER_CAPACITY, &binary_buffer_size);
+
+    if (!rgf_platform_write("head.h", binary_buffer, binary_buffer_size)) {
+        return 1;
+    }
+
     return 0;
 }
 ```
