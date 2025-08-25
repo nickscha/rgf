@@ -1316,7 +1316,7 @@ RGF_API RGF_INLINE int rgf_binary_decode(
 RGF_API RGF_INLINE void rgf_write_static_ulong(char *name_prefix, char *name_suffix, unsigned long value, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
 {
   char temp_buffer[64];
-  rgf_ltoa((long) value, temp_buffer);
+  rgf_ltoa((long)value, temp_buffer);
   rgf_append_str("static unsigned long ", buffer, current_size, capacity);
   rgf_append_str(name_prefix, buffer, current_size, capacity);
   rgf_append_str(name_suffix, buffer, current_size, capacity);
@@ -1432,7 +1432,6 @@ RGF_API RGF_INLINE void rgf_write_pointer_member(char *name, char *header_name, 
 
 RGF_API RGF_INLINE void rgf_convert_to_c_header(rgf_model *model, char *header_name, unsigned char *binary_buffer, unsigned long binary_buffer_capacity, unsigned long *binary_buffer_size)
 {
-  /* C89 requires all variables to be declared at the top of the scope. */
   char guard_name[256];
   int i = 0;
 
