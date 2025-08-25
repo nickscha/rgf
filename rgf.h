@@ -485,6 +485,11 @@ RGF_API RGF_INLINE void rgf_model_calculate_normals(rgf_model *model)
   float face_normal[3];
   int idx1, idx2, idx3;
 
+  if (!model->vertices || !model->indices || !model->normals)
+  {
+    return;
+  }
+
   /* Initialize all normals to zero */
   for (i = 0; i < model->vertices_size; ++i)
   {
@@ -536,7 +541,7 @@ RGF_API RGF_INLINE void rgf_model_calculate_tangents_bitangents(rgf_model *model
 {
   unsigned long i;
 
-  if (!model || !model->vertices || !model->indices || !model->uvs)
+  if (!model || !model->vertices || !model->indices || !model->uvs || !model->tangents || !model->bitangents)
   {
     return;
   }
@@ -635,6 +640,11 @@ RGF_API RGF_INLINE void rgf_model_center(
   float offset_x, offset_y, offset_z;
   unsigned long i;
 
+  if (!model->vertices)
+  {
+    return;
+  }
+
   /* Calculate the current center of the model's bounding box */
   current_center_x = (model->min_x + model->max_x) / 2.0f;
   current_center_y = (model->min_y + model->max_y) / 2.0f;
@@ -671,6 +681,11 @@ RGF_API RGF_INLINE void rgf_model_center_reset(
   float current_center_x, current_center_y, current_center_z;
   float offset_x, offset_y, offset_z;
   unsigned long i;
+
+  if (!model->vertices)
+  {
+    return;
+  }
 
   /* Recalculate the current center of the model's bounding box */
   current_center_x = (model->min_x + model->max_x) / 2.0f;
@@ -710,7 +725,7 @@ RGF_API RGF_INLINE void rgf_model_scale(
   float new_scale_factor;
 
   /* Handle degenerate case of no vertices */
-  if (model->original_max_dim <= 0.0f)
+  if (!model->vertices || model->original_max_dim <= 0.0f)
   {
     return;
   }
@@ -753,7 +768,7 @@ RGF_API RGF_INLINE void rgf_model_scale_reset(
   float reset_factor;
 
   /* Handle degenerate cases */
-  if (model->original_max_dim <= 0.0f || model->current_scale == 1.0f)
+  if (!model->vertices || model->original_max_dim <= 0.0f || model->current_scale == 1.0f)
   {
     return;
   }
