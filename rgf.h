@@ -1054,32 +1054,32 @@ RGF_API RGF_INLINE int rgf_binary_decode(
       );
 
   /* Depending on which data is set in the rgf model we calculate the total size needed to store */
-  if (model->vertices && model->vertices_size > 0)
+  if (model->vertices_size > 0)
   {
     size_total += (unsigned long)(model->vertices_size * sizeof(float));
   }
 
-  if (model->normals && model->normals_size > 0)
+  if (model->normals_size > 0)
   {
     size_total += (unsigned long)(model->normals_size * sizeof(float));
   }
 
-  if (model->tangents && model->tangents_size > 0)
+  if (model->tangents_size > 0)
   {
     size_total += (unsigned long)(model->tangents_size * sizeof(float));
   }
 
-  if (model->bitangents && model->bitangents_size > 0)
+  if (model->bitangents_size > 0)
   {
     size_total += (unsigned long)(model->bitangents_size * sizeof(float));
   }
 
-  if (model->uvs && model->uvs_size > 0)
+  if (model->uvs_size > 0)
   {
     size_total += (unsigned long)(model->uvs_size * sizeof(float));
   }
 
-  if (model->indices && model->indices_size > 0)
+  if (model->indices_size > 0)
   {
     size_total += (unsigned long)(model->indices_size * sizeof(int));
   }
