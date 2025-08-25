@@ -135,10 +135,10 @@ void rgf_test_decode_from_file(void)
 void rgf_test_parse_obj(void)
 {
   /* Stack Memory */
-  float* vertices_buffer = malloc(30000 * sizeof(float));
-  int* indices_buffer = malloc(60000 * sizeof(float));
-  float* normals_buffer = malloc(30000 * sizeof(float));
-  float* uvs_buffer = malloc(100000 * sizeof(float));
+  float *vertices_buffer = malloc(30000 * sizeof(float));
+  int *indices_buffer = malloc(60000 * sizeof(float));
+  float *normals_buffer = malloc(30000 * sizeof(float));
+  float *uvs_buffer = malloc(100000 * sizeof(float));
   unsigned char binary_buffer[1500000];
   unsigned long binary_buffer_size = 0;
 
@@ -242,12 +242,42 @@ void rgf_test_parse_obj(void)
   free(uvs_buffer);
 }
 
+void rgf_test_convert_to_c_header(void)
+{
+  /* Stack Memory */
+  float *vertices_buffer = malloc(30000 * sizeof(float));
+  int *indices_buffer = malloc(60000 * sizeof(float));
+  unsigned char binary_buffer[1500000];
+  unsigned long binary_buffer_size = 0;
+
+  rgf_model model = {0};
+  model.vertices = vertices_buffer;
+  model.indices = indices_buffer;
+
+  assert(rgf_platform_read("head.obj", binary_buffer, 1500000, &binary_buffer_size));
+  assert(rgf_parse_obj(&model, binary_buffer, binary_buffer_size));
+
+  assert(model.vertices_size > 0);
+  assert(model.indices_size > 0);
+
+  assert(model.vertices_size == 26532UL);
+  assert(model.indices_size == 53052UL);
+
+  rgf_convert_to_c_header(&model, "head", binary_buffer, 1500000, &binary_buffer_size);
+
+  assert(rgf_platform_write("head.h", binary_buffer, binary_buffer_size));
+
+  free(vertices_buffer);
+  free(indices_buffer);
+}
+
 int main(void)
 {
   rgf_test_encode_decode();
   rgf_test_encode_to_file();
   rgf_test_decode_from_file();
   rgf_test_parse_obj();
+  rgf_test_convert_to_c_header();
 
   return 0;
 }

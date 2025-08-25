@@ -67,7 +67,7 @@ typedef struct rgf_model
   float *normals;    /* Normals data */
   float *tangents;   /* Point along the U-axis of the texture*/
   float *bitangents; /* Point along the V-axis of the texture. */
-  float *uvs;        /* Texture coordinates: size = (vertices_size / 3) * 2 */
+  float *uvs;        /* Texture coosrdinates: size = (vertices_size / 3) * 2 */
   int *indices;      /* Vertex indices data */
 
 } rgf_model;
@@ -146,6 +146,127 @@ RGF_API RGF_INLINE float rgf_atof(char *s, int *consumed)
   *consumed = i;
 
   return value * (float)sign;
+}
+
+RGF_API RGF_INLINE void rgf_reverse_str(char *str, int length)
+{
+  int start = 0;
+  int end = length - 1;
+  while (start < end)
+  {
+    char temp = str[start];
+    str[start] = str[end];
+    str[end] = temp;
+    start++;
+    end--;
+  }
+}
+
+RGF_API RGF_INLINE void rgf_ltoa(long num, char *str)
+{
+  int i = 0;
+  int is_negative = 0;
+
+  if (num == 0)
+  {
+    str[i++] = '0';
+    str[i] = '\0';
+    return;
+  }
+
+  if (num < 0)
+  {
+    is_negative = 1;
+    num = -num;
+  }
+
+  while (num != 0)
+  {
+    long rem = num % 10;
+    str[i++] = (char)((rem > 9) ? ((rem - 10) + 'a') : (rem + '0'));
+    num = num / 10;
+  }
+
+  if (is_negative)
+  {
+    str[i++] = '-';
+  }
+
+  str[i] = '\0';
+  rgf_reverse_str(str, i);
+}
+
+RGF_API RGF_INLINE void rgf_ftoa(float num, char *str, int afterpoint)
+{
+  long ipart;
+  float fpart;
+  int i = 0;
+  int str_idx = 0;
+  long power_of_10 = 1;
+  int is_negative = 0;
+  char int_str[20];  /* Buffer for integer part */
+  char frac_str[20]; /* Buffer for fractional part */
+
+  if (num < 0.0f)
+  {
+    is_negative = 1;
+    num = -num;
+  }
+
+  ipart = (long)num;
+  fpart = num - (float)ipart;
+
+  /* Convert integer part */
+  rgf_ltoa(ipart, int_str);
+
+  /* Copy integer part to output string */
+  if (is_negative)
+  {
+    str[str_idx++] = '-';
+  }
+  while (int_str[i] != '\0')
+  {
+    str[str_idx++] = int_str[i++];
+  }
+
+  if (afterpoint != 0)
+  {
+    str[str_idx++] = '.';
+
+    for (i = 0; i < afterpoint; ++i)
+    {
+      power_of_10 *= 10;
+    }
+
+    /* Convert fractional part */
+    rgf_ltoa((long)(fpart * (float)power_of_10 + 0.5f), frac_str);
+
+    /* Copy fractional part to output string */
+    i = 0;
+    while (frac_str[i] != '\0')
+    {
+      str[str_idx++] = frac_str[i++];
+    }
+  }
+
+  str[str_idx++] = 'f';
+  str[str_idx] = '\0';
+}
+
+RGF_API RGF_INLINE void rgf_append_str(char *src, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
+{
+  unsigned long i = 0;
+  if (!src)
+  {
+    return;
+  }
+
+  while (src[i] != '\0' && *current_size < capacity - 1)
+  {
+    buffer[*current_size] = (unsigned char)src[i];
+    (*current_size)++;
+    i++;
+  }
 }
 
 /* ########################################################## */
@@ -1187,6 +1308,234 @@ RGF_API RGF_INLINE int rgf_binary_decode(
   }
 
   return 1;
+}
+
+/* ########################################################## */
+/* # Conversion functions (RGF -> Format)                     */
+/* ########################################################## */
+RGF_API RGF_INLINE void rgf_write_static_ulong(char *name_prefix, char *name_suffix, unsigned long value, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
+{
+  char temp_buffer[64];
+  rgf_ltoa((long) value, temp_buffer);
+  rgf_append_str("static unsigned long ", buffer, current_size, capacity);
+  rgf_append_str(name_prefix, buffer, current_size, capacity);
+  rgf_append_str(name_suffix, buffer, current_size, capacity);
+  rgf_append_str(" = ", buffer, current_size, capacity);
+  rgf_append_str(temp_buffer, buffer, current_size, capacity);
+  rgf_append_str("UL;\n", buffer, current_size, capacity);
+}
+
+RGF_API RGF_INLINE void rgf_write_static_float(char *name_prefix, char *name_suffix, float value, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
+{
+  char temp_buffer[64];
+  rgf_ftoa(value, temp_buffer, 6);
+  rgf_append_str("static float ", buffer, current_size, capacity);
+  rgf_append_str(name_prefix, buffer, current_size, capacity);
+  rgf_append_str(name_suffix, buffer, current_size, capacity);
+  rgf_append_str(" = ", buffer, current_size, capacity);
+  rgf_append_str(temp_buffer, buffer, current_size, capacity);
+  rgf_append_str(";\n", buffer, current_size, capacity);
+}
+
+RGF_API RGF_INLINE void rgf_write_float_array(float *arr, unsigned long size, char *name_prefix, char *suffix, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
+{
+  unsigned long i;
+  char temp_buffer[64];
+
+  rgf_append_str("static float ", buffer, current_size, capacity);
+  rgf_append_str(name_prefix, buffer, current_size, capacity);
+  rgf_append_str(suffix, buffer, current_size, capacity);
+  rgf_append_str("[] = {\n    ", buffer, current_size, capacity);
+
+  for (i = 0; i < size; ++i)
+  {
+    rgf_ftoa(arr[i], temp_buffer, 6);
+    rgf_append_str(temp_buffer, buffer, current_size, capacity);
+    if (i < size - 1)
+    {
+      rgf_append_str(", ", buffer, current_size, capacity);
+    }
+
+    if ((i + 1) % 12 == 0 && i < size - 1)
+    {
+      rgf_append_str("\n    ", buffer, current_size, capacity);
+    }
+  }
+  rgf_append_str("\n};\n\n", buffer, current_size, capacity);
+}
+
+RGF_API RGF_INLINE void rgf_write_int_array(int *arr, unsigned long size, char *name_prefix, char *suffix, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
+{
+  unsigned long i;
+  char temp_buffer[64];
+
+  rgf_append_str("static int ", buffer, current_size, capacity);
+  rgf_append_str(name_prefix, buffer, current_size, capacity);
+  rgf_append_str(suffix, buffer, current_size, capacity);
+  rgf_append_str("[] = {\n    ", buffer, current_size, capacity);
+
+  for (i = 0; i < size; ++i)
+  {
+    rgf_ltoa(arr[i], temp_buffer);
+    rgf_append_str(temp_buffer, buffer, current_size, capacity);
+    if (i < size - 1)
+    {
+      rgf_append_str(", ", buffer, current_size, capacity);
+    }
+
+    if ((i + 1) % 12 == 0 && i < size - 1)
+    {
+      rgf_append_str("\n    ", buffer, current_size, capacity);
+    }
+  }
+  rgf_append_str("\n};\n\n", buffer, current_size, capacity);
+}
+
+RGF_API RGF_INLINE void rgf_write_ulong_member(char *name, unsigned long value, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
+{
+  char temp_buffer[64];
+  rgf_ltoa((long)value, temp_buffer);
+  rgf_append_str("    .", buffer, current_size, capacity);
+  rgf_append_str(name, buffer, current_size, capacity);
+  rgf_append_str(" = ", buffer, current_size, capacity);
+  rgf_append_str(temp_buffer, buffer, current_size, capacity);
+  rgf_append_str(",\n", buffer, current_size, capacity);
+}
+
+RGF_API RGF_INLINE void rgf_write_float_member(char *name, float value, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
+{
+  char temp_buffer[64];
+  rgf_ftoa(value, temp_buffer, 6);
+  rgf_append_str("    .", buffer, current_size, capacity);
+  rgf_append_str(name, buffer, current_size, capacity);
+  rgf_append_str(" = ", buffer, current_size, capacity);
+  rgf_append_str(temp_buffer, buffer, current_size, capacity);
+  rgf_append_str(",\n", buffer, current_size, capacity);
+}
+
+RGF_API RGF_INLINE void rgf_write_pointer_member(char *name, char *header_name, void *ptr, unsigned long size, char *suffix, unsigned char *buffer, unsigned long *current_size, unsigned long capacity)
+{
+  rgf_append_str("    .", buffer, current_size, capacity);
+  rgf_append_str(name, buffer, current_size, capacity);
+  rgf_append_str(" = ", buffer, current_size, capacity);
+  if (ptr && size > 0)
+  {
+    rgf_append_str(header_name, buffer, current_size, capacity);
+    rgf_append_str(suffix, buffer, current_size, capacity);
+  }
+  else
+  {
+    rgf_append_str("0", buffer, current_size, capacity);
+  }
+  rgf_append_str(",\n", buffer, current_size, capacity);
+}
+
+RGF_API RGF_INLINE void rgf_convert_to_c_header(rgf_model *model, char *header_name, unsigned char *binary_buffer, unsigned long binary_buffer_capacity, unsigned long *binary_buffer_size)
+{
+  /* C89 requires all variables to be declared at the top of the scope. */
+  char guard_name[256];
+  int i = 0;
+
+  /* Initialize the output size to zero. */
+  *binary_buffer_size = 0;
+
+  if (!model || !header_name || !binary_buffer || binary_buffer_capacity == 0)
+  {
+    return;
+  }
+
+  /* 1. Create the header guard name (e.g., "myrgffile" -> "MYRGFFILE_H") */
+  while (header_name[i] != '\0' && i < (int)(sizeof(guard_name) - 3))
+  {
+    if (header_name[i] >= 'a' && header_name[i] <= 'z')
+    {
+      guard_name[i] = header_name[i] - 'a' + 'A';
+    }
+    else
+    {
+      guard_name[i] = header_name[i];
+    }
+    i++;
+  }
+  guard_name[i++] = '_';
+  guard_name[i++] = 'H';
+  guard_name[i] = '\0';
+
+  /* 2. Write the header file preamble and guard. */
+  rgf_append_str("/* Generated C header file for model: ", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str(header_name, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str(" */\n", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+
+  rgf_append_str("#ifndef ", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str(guard_name, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str("\n#define ", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str(guard_name, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str("\n\n", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+
+  /* 3. Write data arrays if they exist. */
+  if (model->vertices && model->vertices_size > 0)
+  {
+    rgf_write_float_array(model->vertices, model->vertices_size, header_name, "_vertices", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  }
+  if (model->normals && model->normals_size > 0)
+  {
+    rgf_write_float_array(model->normals, model->normals_size, header_name, "_normals", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  }
+  if (model->tangents && model->tangents_size > 0)
+  {
+    rgf_write_float_array(model->tangents, model->tangents_size, header_name, "_tangents", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  }
+  if (model->bitangents && model->bitangents_size > 0)
+  {
+    rgf_write_float_array(model->bitangents, model->bitangents_size, header_name, "_bitangents", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  }
+  if (model->uvs && model->uvs_size > 0)
+  {
+    rgf_write_float_array(model->uvs, model->uvs_size, header_name, "_uvs", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  }
+  if (model->indices && model->indices_size > 0)
+  {
+    rgf_write_int_array(model->indices, model->indices_size, header_name, "_indices", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  }
+
+  /* 4. Write static scalar variables */
+  rgf_append_str("/* Model scalar properties */\n", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_ulong(header_name, "_vertices_size", model->vertices_size, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_ulong(header_name, "_normals_size", model->normals_size, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_ulong(header_name, "_tangents_size", model->tangents_size, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_ulong(header_name, "_bitangents_size", model->bitangents_size, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_ulong(header_name, "_uvs_size", model->uvs_size, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_ulong(header_name, "_indices_size", model->indices_size, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_min_x", model->min_x, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_min_y", model->min_y, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_min_z", model->min_z, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_max_x", model->max_x, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_max_y", model->max_y, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_max_z", model->max_z, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_center_x", model->center_x, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_center_y", model->center_y, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_center_z", model->center_z, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_original_center_x", model->original_center_x, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_original_center_y", model->original_center_y, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_original_center_z", model->original_center_z, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_original_max_dim", model->original_max_dim, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_write_static_float(header_name, "_current_scale", model->current_scale, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str("\n", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+
+  /* 5. Write the closing header guard. */
+  rgf_append_str("#endif /* ", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str(guard_name, binary_buffer, binary_buffer_size, binary_buffer_capacity);
+  rgf_append_str(" */\n", binary_buffer, binary_buffer_size, binary_buffer_capacity);
+
+  /* 6. Null-terminate the final string in the buffer. */
+  if (*binary_buffer_size < binary_buffer_capacity)
+  {
+    binary_buffer[*binary_buffer_size] = '\0';
+  }
+  else if (binary_buffer_capacity > 0)
+  {
+    binary_buffer[binary_buffer_capacity - 1] = '\0';
+  }
 }
 
 #endif /* RGF_H */
