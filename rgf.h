@@ -293,7 +293,7 @@ RGF_API RGF_INLINE int rgf_parse_obj(
   model->indices_size = triangle_count * 3;
   model->uvs_size = uv_count * 2;
 
-  if (!model->vertices || !model->indices)
+  if (!model->vertices)
   {
     return 0;
   }
@@ -368,7 +368,7 @@ RGF_API RGF_INLINE int rgf_parse_obj(
       v_index++;
     }
     /* -------- Texture Coordinate -------- */
-    else if (obj_binary[i] == 'v' && obj_binary[i + 1] == 't')
+    else if (model->uvs && obj_binary[i] == 'v' && obj_binary[i + 1] == 't')
     {
       int consumed = 0;
       i += 3; /* skip "vt " */
@@ -382,7 +382,7 @@ RGF_API RGF_INLINE int rgf_parse_obj(
       i += (unsigned long)consumed;
     }
     /* -------- Faces -------- */
-    else if (obj_binary[i] == 'f' && obj_binary[i + 1] == ' ')
+    else if (model->indices && obj_binary[i] == 'f' && obj_binary[i + 1] == ' ')
     {
       int consumed = 0;
       int j;
