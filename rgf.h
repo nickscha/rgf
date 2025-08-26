@@ -496,8 +496,11 @@ RGF_API RGF_INLINE int rgf_parse_obj(
 
       model->uvs[uv_index++] = rgf_atof((char *)(obj_binary + i), &consumed);
       i += (unsigned long)consumed;
+      
       while (rgf_is_space((char)obj_binary[i]))
+      {
         i++;
+      }
 
       model->uvs[uv_index++] = rgf_atof((char *)(obj_binary + i), &consumed);
       i += (unsigned long)consumed;
