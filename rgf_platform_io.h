@@ -1,4 +1,4 @@
-/* rgf_platform_io.h - v0.1 - public domain data structures - nickscha 2025
+/* rgf_platform_io.h - v0.2 - public domain data structures - nickscha 2025
 
 A C89 standard compliant, single header, nostdlib (no C Standard Library) utility to read/write a file using OS-specific APIs.
 
