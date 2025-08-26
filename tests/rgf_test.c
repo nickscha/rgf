@@ -236,6 +236,26 @@ void rgf_test_parse_obj(void)
   /* Calculate the normals */
   rgf_model_calculate_normals(&model);
 
+  /* Test calculation of boundary fields (min/max/center) from just vertices */
+  {
+    rgf_model cm = {0};
+    cm.vertices = model.vertices;
+    cm.vertices_size = model.vertices_size;
+
+    rgf_model_calculate_boundaries(&cm);
+
+    /* Check cm model boundaries (should be the same as the original model) */
+    assert_equalsf(cm.min_x, -0.221155f, RGF_TEST_EPSILON);
+    assert_equalsf(cm.min_y, -0.305050f, RGF_TEST_EPSILON);
+    assert_equalsf(cm.min_z, -0.221103f, RGF_TEST_EPSILON);
+    assert_equalsf(cm.max_x, 0.232135f, RGF_TEST_EPSILON);
+    assert_equalsf(cm.max_y, 0.116040f, RGF_TEST_EPSILON);
+    assert_equalsf(cm.max_z, 0.053476f, RGF_TEST_EPSILON);
+    assert_equalsf(cm.center_x, 0.005490f, RGF_TEST_EPSILON);
+    assert_equalsf(cm.center_y, -0.094505f, RGF_TEST_EPSILON);
+    assert_equalsf(cm.center_z, -0.083813f, RGF_TEST_EPSILON);
+  }
+
   free(vertices_buffer);
   free(indices_buffer);
   free(normals_buffer);

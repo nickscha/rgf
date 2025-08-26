@@ -496,7 +496,7 @@ RGF_API RGF_INLINE int rgf_parse_obj(
 
       model->uvs[uv_index++] = rgf_atof((char *)(obj_binary + i), &consumed);
       i += (unsigned long)consumed;
-      
+
       while (rgf_is_space((char)obj_binary[i]))
       {
         i++;
@@ -601,6 +601,89 @@ RGF_API RGF_INLINE int rgf_parse_obj(
 /* ########################################################## */
 /* # Geometry manipulation functions                          */
 /* ########################################################## */
+RGF_API RGF_INLINE void rgf_model_calculate_boundaries(rgf_model *model)
+{
+  unsigned long i;
+  float dim_x, dim_y, dim_z;
+
+  if (!model || !model->vertices || model->vertices_size == 0)
+  {
+    return;
+  }
+
+  /* Initialize min/max with the coordinates of the first vertex. */
+  model->min_x = model->max_x = model->vertices[0];
+  model->min_y = model->max_y = model->vertices[1];
+  model->min_z = model->max_z = model->vertices[2];
+
+  /* Iterate through the rest of the vertices to find the true min/max. */
+  for (i = 3; i < model->vertices_size; i += 3)
+  {
+    float x = model->vertices[i];
+    float y = model->vertices[i + 1];
+    float z = model->vertices[i + 2];
+
+    if (x < model->min_x)
+    {
+      model->min_x = x;
+    }
+
+    if (x > model->max_x)
+    {
+      model->max_x = x;
+    }
+
+    if (y < model->min_y)
+    {
+      model->min_y = y;
+    }
+
+    if (y > model->max_y)
+    {
+      model->max_y = y;
+    }
+
+    if (z < model->min_z)
+    {
+      model->min_z = z;
+    }
+
+    if (z > model->max_z)
+    {
+      model->max_z = z;
+    }
+  }
+
+  /* Calculate the center of the model. */
+  model->center_x = model->min_x + (model->max_x - model->min_x) / 2.0f;
+  model->center_y = model->min_y + (model->max_y - model->min_y) / 2.0f;
+  model->center_z = model->min_z + (model->max_z - model->min_z) / 2.0f;
+
+  /* Set the original properties (as this is the initial calculation). */
+  model->original_center_x = model->center_x;
+  model->original_center_y = model->center_y;
+  model->original_center_z = model->center_z;
+
+  /* Calculate the dimensions and find the largest one. */
+  dim_x = model->max_x - model->min_x;
+  dim_y = model->max_y - model->min_y;
+  dim_z = model->max_z - model->min_z;
+
+  model->original_max_dim = dim_x;
+  
+  if (dim_y > model->original_max_dim)
+  {
+    model->original_max_dim = dim_y;
+  }
+  if (dim_z > model->original_max_dim)
+  {
+    model->original_max_dim = dim_z;
+  }
+
+  /* Set the initial scale. */
+  model->current_scale = 1.0f;
+}
+
 RGF_API RGF_INLINE void rgf_model_calculate_normals(rgf_model *model)
 {
   unsigned long i;
